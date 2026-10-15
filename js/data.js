@@ -187,7 +187,211 @@
           { id: 'pr4', title: 'Glow in the Dark', theme: 'Places', level: 5, words: ['BIOLUMINESCENT', 'MOSQUITOBAY', 'PONCE', 'ARECIBO', 'RINCON', 'VIEQUES'],
             fact: 'Mosquito Bay on Vieques is known as one of the brightest bioluminescent bays in the world.' }
         ] },
-      { id: 'slang', name: 'Island Talk', color: '#F4A261', starsReq: 118,
+      { id: 'antigua', name: 'Antigua & Barbuda', color: '#1AA6B7', starsReq: 118,
+        blurb: 'Sailing harbors, historic forts and giant frigatebird colonies.',
+        puzzles: [
+          { id: 'ag1', title: 'Harbor Days', theme: 'Places', level: 1, words: ['SAIL', 'DOCK', 'FORT', 'REEF'],
+            fact: 'Nelson\'s Dockyard in English Harbour, Antigua, is a UNESCO World Heritage Site.' },
+          { id: 'ag2', title: 'Twin Island State', theme: 'Culture', level: 2, words: ['ANTIGUA', 'BARBUDA', 'NELSON', 'SAILING'],
+            fact: 'Antigua and Barbuda became an independent nation in 1981.' },
+          { id: 'ag3', title: 'Birds & Pineapples', theme: 'Nature', level: 4, words: ['FRIGATEBIRD', 'CODRINGTON', 'STJOHNS', 'PINEAPPLE'],
+            fact: 'Barbuda\'s Codrington Lagoon shelters one of the largest frigatebird colonies in the world.' }
+        ] },
+      { id: 'stkitts', name: 'Saint Kitts & Nevis', color: '#2F8F4E', starsReq: 125,
+        blurb: 'A tiny twin-island nation with a mighty fortress.',
+        puzzles: [
+          { id: 'kn1', title: 'Twin Islands', theme: 'Places', level: 1, words: ['NEVIS', 'KITTS', 'SUGAR', 'FORT'],
+            fact: 'Saint Kitts and Nevis is the smallest sovereign country in the Americas by both area and population.' },
+          { id: 'kn2', title: 'Fortress on the Hill', theme: 'Places', level: 3, words: ['BRIMSTONE', 'FORTRESS', 'BASSETERRE', 'VOLCANO'],
+            fact: 'Brimstone Hill Fortress National Park on Saint Kitts is a UNESCO World Heritage Site.' },
+          { id: 'kn3', title: 'Nevis Notables', theme: 'Culture', level: 4, words: ['HAMILTON', 'CHARLESTOWN', 'NEVISPEAK', 'SUGARTRAIN'],
+            fact: 'Alexander Hamilton, a Founding Father of the United States, was born on Nevis in the 1750s.' }
+        ] },
+      { id: 'cayman', name: 'Cayman Islands', color: '#0E7C9B', starsReq: 132,
+        blurb: 'Three islands famous for diving, stingrays and blue iguanas.',
+        puzzles: [
+          { id: 'ky1', title: 'Under the Sea', theme: 'Nature', level: 1, words: ['DIVE', 'REEF', 'SAND', 'RAY'],
+            fact: 'At Stingray City in Grand Cayman\'s North Sound, visitors can wade among friendly southern stingrays.' },
+          { id: 'ky2', title: 'Three Islands', theme: 'Places', level: 2, words: ['GRAND', 'BRAC', 'LITTLE', 'CAYMAN'],
+            fact: 'The Cayman Islands are Grand Cayman, Cayman Brac and Little Cayman.' },
+          { id: 'ky3', title: 'Turtle Islands', theme: 'Culture', level: 3, words: ['STINGRAY', 'SEVENMILE', 'GEORGETOWN', 'TURTLE'],
+            fact: 'Columbus sighted the islands in 1503 and called them Las Tortugas because of all the sea turtles.' },
+          { id: 'ky4', title: 'Blue Iguana Trail', theme: 'Nature', level: 4, words: ['BLUEIGUANA', 'MASTICTRAIL', 'SEVENMILE', 'CAYMANBRAC'],
+            fact: 'Conservation programs have helped bring the Grand Cayman blue iguana back from the edge of extinction.' }
+        ] },
+      { id: 'curacao', name: 'Curaçao', color: '#F2A900', starsReq: 139,
+        blurb: 'Pastel harbor houses, Papiamentu and a famous blue liqueur.',
+        puzzles: [
+          { id: 'cw1', title: 'Blue Orange', theme: 'Food', level: 1, words: ['PUNDA', 'LARAHA', 'BLUE', 'SALT'],
+            fact: 'Blue Curaçao liqueur is flavored with the dried peel of the laraha, a bitter orange grown on the island.' },
+          { id: 'cw2', title: 'Sweet Island', theme: 'Culture', level: 2, words: ['DUSHI', 'CURACAO', 'DUTCH', 'KENEPA'],
+            fact: 'Curaçao is a constituent country of the Kingdom of the Netherlands.' },
+          { id: 'cw3', title: 'Colorful Capital', theme: 'Places', level: 3, words: ['WILLEMSTAD', 'OTROBANDA', 'PAPIAMENTU', 'PUNDA'],
+            fact: 'The historic center of Willemstad is a UNESCO World Heritage Site.' },
+          { id: 'cw4', title: 'Bridges & Birds', theme: 'Places', level: 4, words: ['CHRISTOFFEL', 'KLEINCURACAO', 'QUEENEMMA', 'FLAMINGO'],
+            fact: 'The Queen Emma Bridge in Willemstad is a floating pontoon bridge that swings open to let ships pass.' }
+        ] },
+      { id: 'aruba', name: 'Aruba', color: '#2A7FDB', starsReq: 146,
+        blurb: 'One Happy Island, with leaning divi-divi trees and white sand.',
+        puzzles: [
+          { id: 'aw1', title: 'Windswept Shore', theme: 'Nature', level: 1, words: ['ALOE', 'DIVI', 'EAGLE', 'WIND'],
+            fact: 'Aruba\'s famous divi-divi trees are bent by the constant trade winds.' },
+          { id: 'aw2', title: 'One Happy Island', theme: 'Culture', level: 2, words: ['ARUBA', 'HAPPY', 'ARIKOK', 'ISLAND'],
+            fact: 'Aruba became a separate constituent country of the Kingdom of the Netherlands in 1986.' },
+          { id: 'aw3', title: 'Sun & Sand', theme: 'Places', level: 3, words: ['ORANJESTAD', 'EAGLEBEACH', 'LIGHTHOUSE', 'PAPIAMENTO'],
+            fact: 'Aruba, Bonaire and Curaçao are called the ABC islands and lie just off the coast of Venezuela.' }
+        ] },
+      { id: 'bonaire', name: 'Bonaire', color: '#00A878', starsReq: 153,
+        blurb: 'A diver\'s paradise ringed by a protected marine park.',
+        puzzles: [
+          { id: 'bq1', title: 'Reef Keepers', theme: 'Nature', level: 1, words: ['SALT', 'DIVE', 'REEF', 'DONKEY'],
+            fact: 'The Bonaire National Marine Park, created in 1979, protects the coral reefs all around the island.' },
+          { id: 'bq2', title: 'Pink Flocks', theme: 'Wildlife', level: 2, words: ['BONAIRE', 'FLAMINGO', 'SALTPANS', 'DONKEY'],
+            fact: 'Flamingos gather around Bonaire\'s salt flats, one of the few places in the Caribbean where they breed.' },
+          { id: 'bq3', title: 'Wind & Wild', theme: 'Places', level: 4, words: ['KRALENDIJK', 'WASHINGTON', 'SLAGBAAI', 'WINDSURFING'],
+            fact: 'Bonaire is a special municipality of the Netherlands, and Kralendijk is its capital.' }
+        ] },
+      { id: 'dominica', name: 'Dominica', color: '#2E8B3D', starsReq: 160,
+        blurb: 'The Nature Isle, with rainforest, hot springs and a boiling lake.',
+        puzzles: [
+          { id: 'dm1', title: 'Parrot Island', theme: 'Wildlife', level: 1, words: ['PARROT', 'LAKE', 'WHALE', 'RIVER'],
+            fact: 'The Sisserou parrot, Dominica\'s national bird, appears on its flag, one of very few national flags that includes purple.' },
+          { id: 'dm2', title: 'Island Heritage', theme: 'Culture', level: 2, words: ['DOMINICA', 'ROSEAU', 'KALINAGO', 'BOUYON'],
+            fact: 'The Kalinago Territory on Dominica\'s east coast is home to the Kalinago people, one of the Caribbean\'s Indigenous nations.' },
+          { id: 'dm3', title: 'Nature Isle', theme: 'Nature', level: 4, words: ['NATUREISLE', 'BOILINGLAKE', 'TROISPITONS', 'WAITUKUBULI'],
+            fact: 'Morne Trois Pitons National Park, home of the Boiling Lake, is a UNESCO World Heritage Site.' }
+        ] },
+      { id: 'stvincent', name: 'St Vincent & the Grenadines', color: '#3D5AFE', starsReq: 167,
+        blurb: 'A chain of sailing islands crowned by an active volcano.',
+        puzzles: [
+          { id: 'vc1', title: 'Island Chain', theme: 'Places', level: 1, words: ['BEQUIA', 'CAYS', 'UNION', 'SAIL'],
+            fact: 'The Grenadines are a chain of small islands. The northern ones belong to Saint Vincent and the Grenadines, and the southern ones, like Carriacou, belong to Grenada.' },
+          { id: 'vc2', title: 'Turtle Waters', theme: 'Nature', level: 2, words: ['MUSTIQUE', 'VINCY', 'CORAL', 'TURTLE'],
+            fact: 'Tobago Cays Marine Park in the Grenadines protects coral reefs and sea turtles.' },
+          { id: 'vc3', title: 'Bligh\'s Breadfruit', theme: 'History', level: 4, words: ['SOUFRIERE', 'BREADFRUIT', 'KINGSTOWN', 'ARROWROOT', 'WALLILABOU'],
+            fact: 'Captain William Bligh brought breadfruit plants from Tahiti to Saint Vincent in 1793.' }
+        ] },
+      { id: 'bermuda', name: 'Bermuda', color: '#E75480', starsReq: 174,
+        blurb: 'A pink-sand island in the Atlantic, often grouped with the Caribbean.',
+        puzzles: [
+          { id: 'bm1', title: 'Pink Sands', theme: 'Places', level: 1, words: ['SHORTS', 'PINK', 'SAND', 'MOON'],
+            fact: 'Bermuda shorts are still worn by businesspeople there as part of formal dress.' },
+          { id: 'bm2', title: 'Island Spirit', theme: 'Culture', level: 2, words: ['GOMBEY', 'HAMILTON', 'CAHOW', 'BERMUDA'],
+            fact: 'The cahow, Bermuda\'s national bird, was thought extinct for centuries until it was rediscovered in 1951.' },
+          { id: 'bm3', title: 'Old Fortresses', theme: 'History', level: 4, words: ['MOONGATE', 'STGEORGES', 'TRIANGLE', 'SOMERSISLES', 'DINGHY'],
+            fact: 'The Historic Town of St George and Related Fortifications is a UNESCO World Heritage Site. Bermuda sits in the North Atlantic, not in the Caribbean Sea.' }
+        ] },
+      { id: 'turkscaicos', name: 'Turks & Caicos', color: '#00B4D8', starsReq: 181,
+        blurb: 'Grace Bay beaches, conch and migrating humpback whales.',
+        puzzles: [
+          { id: 'tc1', title: 'Salt Islands', theme: 'History', level: 1, words: ['CONCH', 'SALT', 'SAND', 'REEF'],
+            fact: 'Raking salt from the ponds was a main industry on Grand Turk and Salt Cay for centuries.' },
+          { id: 'tc2', title: 'Island Emblems', theme: 'Culture', level: 2, words: ['TURKS', 'CAICOS', 'LOBSTER', 'CACTUS'],
+            fact: 'The Turks and Caicos coat of arms shows a conch shell, a spiny lobster and a Turk\'s head cactus.' },
+          { id: 'tc3', title: 'Whale Season', theme: 'Wildlife', level: 4, words: ['GRACEBAY', 'GRANDTURK', 'MIDDLECAICOS', 'WHALES'],
+            fact: 'Humpback whales pass through Turks and Caicos waters every winter.' }
+        ] },
+      { id: 'bvi', name: 'British Virgin Islands', color: '#1D8FE1', starsReq: 188,
+        blurb: 'Sailing paradise with giant granite boulders and secret coves.',
+        puzzles: [
+          { id: 'vg1', title: 'Boulder Baths', theme: 'Places', level: 1, words: ['BATHS', 'SAIL', 'BOAT', 'ROCK'],
+            fact: 'The Baths on Virgin Gorda are giant granite boulders that form pools and sea caves.' },
+          { id: 'vg2', title: 'Island Hopping', theme: 'Places', level: 2, words: ['TORTOLA', 'ANEGADA', 'GORDA', 'VIRGIN'],
+            fact: 'Anegada is a flat coral island, while most of the other British Virgin Islands are hilly and volcanic.' },
+          { id: 'vg3', title: 'Beach Bars & Bays', theme: 'Places', level: 4, words: ['JOSTVANDYKE', 'ROADTOWN', 'NORMANISLAND', 'PAINKILLER', 'FUNGI'],
+            fact: 'Columbus named the Virgin Islands in 1493 after Saint Ursula and her followers.' }
+        ] },
+      { id: 'usvi', name: 'US Virgin Islands', color: '#E4572E', starsReq: 195,
+        blurb: 'St. Thomas, St. John and St. Croix: three islands, one big culture.',
+        puzzles: [
+          { id: 'vi1', title: 'Island Music', theme: 'Music', level: 1, words: ['QUELBE', 'TURTLE', 'REEF', 'PARK'],
+            fact: 'Quelbe is the official music of the U.S. Virgin Islands.' },
+          { id: 'vi2', title: 'Three Sisters', theme: 'Places', level: 2, words: ['STTHOMAS', 'STCROIX', 'STJOHN', 'DANISH'],
+            fact: 'The United States bought the Danish West Indies from Denmark in 1917 and renamed them the U.S. Virgin Islands.' },
+          { id: 'vi3', title: 'Stilts & Beaches', theme: 'Culture', level: 4, words: ['MOCKOJUMBIE', 'MAGENSBAY', 'BUCKISLAND', 'FREDERIKSTED'],
+            fact: 'Mocko jumbies are stilt dancers, a tradition with roots in West Africa.' }
+        ] },
+      { id: 'anguilla', name: 'Anguilla', color: '#4CC3D9', starsReq: 202,
+        blurb: 'Quiet, powder-white beaches and thrilling boat races.',
+        puzzles: [
+          { id: 'ai1', title: 'Shape of an Eel', theme: 'Places', level: 1, words: ['EEL', 'SAND', 'SHOAL', 'SALT'],
+            fact: 'The name Anguilla comes from a word for eel, describing the island\'s long, thin shape.' },
+          { id: 'ai2', title: 'Three Dolphins', theme: 'Culture', level: 2, words: ['ANGUILLA', 'DOLPHIN', 'VALLEY', 'RACING'],
+            fact: 'Anguilla\'s coat of arms shows three dolphins.' },
+          { id: 'ai3', title: 'Race Day', theme: 'Sports', level: 4, words: ['BOATRACING', 'SANDYGROUND', 'MEADSBAY', 'CRAYFISH'],
+            fact: 'Boat racing, with sleek wooden sailboats, is Anguilla\'s national sport.' }
+        ] },
+      { id: 'montserrat', name: 'Montserrat', color: '#2D9F5D', starsReq: 209,
+        blurb: 'The Emerald Isle of the Caribbean, with Irish roots and an active volcano.',
+        puzzles: [
+          { id: 'ms1', title: 'Emerald Isle', theme: 'Culture', level: 1, words: ['IRISH', 'ORIOLE', 'GREEN', 'HARP'],
+            fact: 'Montserrat is called the Emerald Isle of the Caribbean because of its Irish heritage and lush green hills.' },
+          { id: 'ms2', title: 'Volcano Story', theme: 'History', level: 2, words: ['PLYMOUTH', 'VOLCANO', 'EMERALD', 'ISLE'],
+            fact: 'The Soufriere Hills volcano began erupting in 1995, and the old capital, Plymouth, had to be abandoned.' },
+          { id: 'ms3', title: 'Studio on the Isle', theme: 'Music', level: 4, words: ['MONTSERRAT', 'SOUFRIERE', 'GOATWATER', 'LITTLEBAY', 'AIRSTUDIOS'],
+            fact: 'Beatles producer George Martin opened AIR Studios on Montserrat, where many famous albums were recorded.' }
+        ] },
+      { id: 'martinique', name: 'Martinique', color: '#C2185B', starsReq: 216,
+        blurb: 'French-Creole flavor, rhum agricole and the story of Mont Pelee.',
+        puzzles: [
+          { id: 'mq1', title: 'Rum & Rhythm', theme: 'Culture', level: 1, words: ['PELEE', 'ZOUK', 'RHUM', 'PUNCH'],
+            fact: 'Martinique\'s rhum agricole is made from fresh sugar cane juice rather than molasses.' },
+          { id: 'mq2', title: 'Voices of Martinique', theme: 'Culture', level: 2, words: ['CESAIRE', 'FANON', 'BIGUINE', 'CREOLE'],
+            fact: 'Poet Aime Cesaire of Martinique helped found the Negritude literary movement.' },
+          { id: 'mq3', title: 'Volcano & Capital', theme: 'History', level: 4, words: ['FORTDEFRANCE', 'SAINTPIERRE', 'JOSEPHINE', 'DIAMONDROCK'],
+            fact: 'Mont Pelee erupted in 1902 and destroyed the city of Saint-Pierre.' }
+        ] },
+      { id: 'guadeloupe', name: 'Guadeloupe', color: '#0097A7', starsReq: 223,
+        blurb: 'A butterfly-shaped archipelago with drumming, waterfalls and a volcano.',
+        puzzles: [
+          { id: 'gp1', title: 'Drums & Sandwiches', theme: 'Culture', level: 1, words: ['GWOKA', 'BOKIT', 'DRUM', 'REEF'],
+            fact: 'Gwoka, Guadeloupe\'s drumming, singing and dance tradition, was added to UNESCO\'s heritage list in 2014.' },
+          { id: 'gp2', title: 'Island Family', theme: 'Places', level: 2, words: ['SAINTES', 'DESIRADE', 'GALANTE', 'MARIE'],
+            fact: 'Guadeloupe is an archipelago, and Marie-Galante is named after Columbus\'s flagship.' },
+          { id: 'gp3', title: 'Butterfly Wings', theme: 'Places', level: 4, words: ['GRANDETERRE', 'BASSETERRE', 'SOUFRIERE', 'POINTEAPITRE'],
+            fact: 'Guadeloupe\'s two main islands, Basse-Terre and Grande-Terre, give it a butterfly shape when seen from above.' }
+        ] },
+      { id: 'sintmaarten', name: 'Sint Maarten / Saint Martin', color: '#7E57C2', starsReq: 230,
+        blurb: 'One island, two nations, and planes landing over the beach.',
+        puzzles: [
+          { id: 'sx1', title: 'Jet Over Maho', theme: 'Places', level: 1, words: ['MAHO', 'PLANE', 'SAND', 'JET'],
+            fact: 'At Maho Beach, airplanes fly in extremely low over the sand as they land.' },
+          { id: 'sx2', title: 'Two Nations', theme: 'History', level: 2, words: ['MARIGOT', 'FRENCH', 'DUTCH', 'BORDER'],
+            fact: 'The island has been shared by France and the Netherlands since the Treaty of Concordia in 1648.' },
+          { id: 'sx3', title: 'Guavaberry Time', theme: 'Food', level: 4, words: ['PHILIPSBURG', 'ORIENTBAY', 'GUAVABERRY', 'SIMPSONBAY', 'PICPARADIS'],
+            fact: 'Guavaberry liqueur, made with rum and local guavaberries, is a traditional folk drink of Sint Maarten.' }
+        ] },
+      { id: 'stbarths', name: 'Saint Barthélemy', color: '#D9455F', starsReq: 237,
+        blurb: 'Chic French island with a Swedish past.',
+        puzzles: [
+          { id: 'bl1', title: 'Swedish Past', theme: 'History', level: 1, words: ['SWEDEN', 'SALINE', 'BEACH', 'SAND'],
+            fact: 'Sweden ruled Saint Barthelemy from 1784 until it returned to France in 1878.' },
+          { id: 'bl2', title: 'Little Capital', theme: 'Places', level: 2, words: ['GUSTAVIA', 'COROSSOL', 'STBARTH', 'FRENCH'],
+            fact: 'Gustavia, the capital, is named after King Gustav III of Sweden.' },
+          { id: 'bl3', title: 'Beach Hopping', theme: 'Places', level: 3, words: ['COLOMBIER', 'SHELLBEACH', 'GOUVERNEUR', 'LORIENT'],
+            fact: 'Saint Barthelemy is a French overseas collectivity.' }
+        ] },
+      { id: 'saba', name: 'Saba', color: '#3A7D44', starsReq: 244,
+        blurb: 'The Unspoiled Queen, a Dutch volcano rising straight from the sea.',
+        puzzles: [
+          { id: 'sb1', title: 'Lace & Spice', theme: 'Culture', level: 1, words: ['SABA', 'LACE', 'SPICE', 'CLIFF'],
+            fact: 'Saba lace is a traditional needlework craft of the island.' },
+          { id: 'sb2', title: 'Top of the Kingdom', theme: 'Places', level: 2, words: ['SCENERY', 'BOTTOM', 'QUEEN', 'DUTCH'],
+            fact: 'Mount Scenery on Saba, at 887 metres (2,910 feet), is the highest point in the Kingdom of the Netherlands.' },
+          { id: 'sb3', title: 'Tiny Runway', theme: 'Places', level: 4, words: ['WINDWARDSIDE', 'UNSPOILED', 'AIRSTRIP', 'MARINEPARK'],
+            fact: 'Saba\'s airport has one of the shortest commercial runways in the world.' }
+        ] },
+      { id: 'statia', name: 'Sint Eustatius', color: '#B8860B', starsReq: 251,
+        blurb: 'Statia, the Golden Rock, with a volcano and a big moment in history.',
+        puzzles: [
+          { id: 'st1', title: 'Volcano Garden', theme: 'Nature', level: 1, words: ['QUILL', 'FORT', 'ROCK', 'STATIA'],
+            fact: 'The Quill is a dormant volcano on Sint Eustatius with a rainforest growing inside its crater.' },
+          { id: 'st2', title: 'Salute!', theme: 'History', level: 2, words: ['ORANJE', 'SALUTE', 'AMERICA', 'FLAG'],
+            fact: 'In 1776, Fort Oranje on Sint Eustatius fired one of the first official foreign salutes to the American flag.' },
+          { id: 'st3', title: 'Golden Rock', theme: 'History', level: 3, words: ['ORANJESTAD', 'GOLDENROCK', 'FORTORANJE', 'MARINEPARK'],
+            fact: 'Sint Eustatius was nicknamed the Golden Rock because 18th-century trade made it so wealthy.' }
+        ] },
+      { id: 'slang', name: 'Island Talk', color: '#F4A261', starsReq: 258,
         blurb: 'Friendly words and phrases you will hear in the yard.',
         puzzles: [
           { id: 'sl1', title: 'Irie Vibes', theme: 'Slang', level: 1, words: ['IRIE', 'YARD', 'LIME', 'BLESS'],

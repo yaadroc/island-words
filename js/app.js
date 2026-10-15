@@ -10,11 +10,18 @@
   /* v1 saves had no 'unlocked' list. Islands were unlocked by the old rules; keep them open after content updates. */
   var LEGACY = [['jamaica', 0, ['jm1', 'jm2', 'jm3', 'jm4']], ['bahamas', 6, ['bs1', 'bs2', 'bs3', 'bs4']], ['trinidad', 15, ['tt1', 'tt2', 'tt3', 'tt4']],
     ['barbados', 24, ['bb1', 'bb2', 'bb3']], ['dominican', 32, ['dr1', 'dr2', 'dr3']], ['stlucia', 40, ['lc1', 'lc2', 'lc3']]];
+  /* v2 (65 puzzles, 16 sets): same idea with the thresholds shipped then, so newly inserted islands never re-lock anything. */
+  var LEGACY2 = [['jamaica',0,['jm1','jm2','jm5','jm6','jm3','jm4','jm7']],['bahamas',6,['bs1','bs2','bs3','bs5','bs4']],['trinidad',14,['tt1','tt2','tt3','tt5','tt4','tt6']],['food',22,['fd1','fd2','fd3']],['barbados',30,['bb1','bb2','bb3','bb4']],['dominican',38,['dr1','dr2','dr4','dr3']],['legends',46,['lg1','lg2','lg3','lg4']],['stlucia',54,['lc1','lc2','lc4','lc3']],['cuba',62,['cu1','cu2','cu3','cu4']],['cricket',70,['cr1','cr2','cr3']],['grenada',78,['gr1','gr2','gr3','gr4']],['wildlife',86,['wl1','wl2','wl3']],['haiti',94,['ha1','ha2','ha3','ha4']],['festivals',102,['fe1','fe2','fe3']],['puertorico',110,['pr1','pr2','pr3','pr4']],['slang',118,['sl1','sl2','sl3']]];
   function migrateUnlocked(s) {
     var u = Object.assign({}, s.unlocked && typeof s.unlocked === 'object' ? s.unlocked : {}), st = s.stars || {}, tot = 0, k;
     for (k in st) tot += st[k] | 0;
     var prevN = 0, prevDone = 0;
     LEGACY.forEach(function (L) {
+      if (L[1] === 0 || tot >= L[1] || prevDone >= prevN) u[L[0]] = true;
+      prevN += L[2].length; L[2].forEach(function (id) { if (st[id] > 0) prevDone++; });
+    });
+    prevN = 0; prevDone = 0;
+    LEGACY2.forEach(function (L) {
       if (L[1] === 0 || tot >= L[1] || prevDone >= prevN) u[L[0]] = true;
       prevN += L[2].length; L[2].forEach(function (id) { if (st[id] > 0) prevDone++; });
     });
