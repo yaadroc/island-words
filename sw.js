@@ -1,5 +1,5 @@
 /* Island Words service worker: cache-first, everything precached for offline play. */
-const CACHE = 'island-words-v1';
+const CACHE = 'island-words-v2';
 const ASSETS = ['./', 'index.html', 'manifest.json', 'css/style.css', 'js/data.js', 'js/generator.js', 'js/app.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png', 'icons/apple-touch-icon.png'];
 self.addEventListener('install', e => {

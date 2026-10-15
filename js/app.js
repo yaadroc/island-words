@@ -6,11 +6,24 @@
   var PALETTE = ['#FFB4A2', '#FFE08A', '#9BE3B4', '#8EE3EA', '#D9B8F2', '#FFC2D6', '#B3C8FA', '#FFD29A'];
 
   /* ---------- save data ---------- */
-  function defSave() { return { coins: 50, stars: {}, settings: { sound: true, relax: false, large: false }, daily: { last: '', streak: 0, done: {} } }; }
+  function defSave() { return { coins: 50, stars: {}, settings: { sound: true, relax: false, large: false }, daily: { last: '', streak: 0, done: {} }, unlocked: {} }; }
+  /* v1 saves had no 'unlocked' list. Islands were unlocked by the old rules; keep them open after content updates. */
+  var LEGACY = [['jamaica', 0, ['jm1', 'jm2', 'jm3', 'jm4']], ['bahamas', 6, ['bs1', 'bs2', 'bs3', 'bs4']], ['trinidad', 15, ['tt1', 'tt2', 'tt3', 'tt4']],
+    ['barbados', 24, ['bb1', 'bb2', 'bb3']], ['dominican', 32, ['dr1', 'dr2', 'dr3']], ['stlucia', 40, ['lc1', 'lc2', 'lc3']]];
+  function migrateUnlocked(s) {
+    var u = Object.assign({}, s.unlocked && typeof s.unlocked === 'object' ? s.unlocked : {}), st = s.stars || {}, tot = 0, k;
+    for (k in st) tot += st[k] | 0;
+    var prevN = 0, prevDone = 0;
+    LEGACY.forEach(function (L) {
+      if (L[1] === 0 || tot >= L[1] || prevDone >= prevN) u[L[0]] = true;
+      prevN += L[2].length; L[2].forEach(function (id) { if (st[id] > 0) prevDone++; });
+    });
+    return u;
+  }
   function load() {
     try {
       var s = JSON.parse(localStorage.getItem(KEY));
-      if (s && typeof s === 'object') { var d = defSave(); return { coins: s.coins | 0, stars: s.stars || {}, settings: Object.assign(d.settings, s.settings), daily: Object.assign(d.daily, s.daily) }; }
+      if (s && typeof s === 'object') { var d = defSave(); return { coins: s.coins | 0, stars: s.stars || {}, settings: Object.assign(d.settings, s.settings), daily: Object.assign(d.daily, s.daily), unlocked: migrateUnlocked(s) }; }
     } catch (e) {}
     return defSave();
   }
@@ -45,9 +58,17 @@
     if (i === 0) return true;
     var prev = 0; for (var j = 0; j < i; j++) prev += D.islands[j].puzzles.length;
     var prevDone = 0; for (j = 0; j < i; j++) D.islands[j].puzzles.forEach(function (p) { if (save.stars[p.id] > 0) prevDone++; });
-    return totalStars() >= D.islands[i].starsReq || prevDone >= prev;
+    var id = D.islands[i].id;
+    if (save.unlocked && save.unlocked[id]) return true;
+    var ok = totalStars() >= D.islands[i].starsReq || prevDone >= prev;
+    if (ok && save.unlocked) { save.unlocked[id] = true; persist(); }
+    return ok;
   }
-  function puzzleUnlocked(isl, idx) { return idx === 0 || save.stars[isl.puzzles[idx - 1].id] > 0; }
+  function puzzleUnlocked(isl, idx) {
+    if (idx === 0 || save.stars[isl.puzzles[idx - 1].id] > 0) return true;
+    for (var j = idx + 1; j < isl.puzzles.length; j++) if (save.stars[isl.puzzles[j].id] > 0) return true; // later puzzle already done (older save)
+    return false;
+  }
   function nextPuzzle() { // first unlocked-but-unfinished puzzle
     for (var i = 0; i < D.islands.length; i++) {
       if (!islandUnlocked(i)) continue;
