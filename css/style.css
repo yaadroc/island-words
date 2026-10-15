@@ -145,27 +145,11 @@ button{font:inherit;color:inherit;cursor:pointer;border:0}
   .menu-btns{margin-bottom:24px}
 }
 
-/* ---------- difficulty ---------- */
-.dbadge{display:inline-block;padding:1px 10px;border-radius:99px;font-size:.95em;font-weight:900;color:#fff;background:#14B8C4;text-shadow:0 1px 0 rgba(0,0,0,.2);vertical-align:middle}
-.dbadge.d-easy{background:#2E9E5B} .dbadge.d-medium{background:#1D8FE1} .dbadge.d-hard{background:#E8761F} .dbadge.d-expert{background:#B3261E}
-.diff-list{display:flex;flex-direction:column;gap:8px;margin:8px 0 12px;text-align:left}
-.diff-opt{display:flex;flex-direction:column;gap:2px;width:100%;min-height:64px;padding:10px 14px 10px 18px;border-radius:18px;background:#F3F9FA;color:var(--ink);border:3px solid transparent;border-left:10px solid var(--dc,#14B8C4);text-align:left}
-.diff-opt b{font-size:1.1em;font-weight:900}
-.diff-opt .ds{font-size:.74em;font-weight:700;opacity:.85}
-.diff-opt .dd,.diff-opt .db{display:none;font-size:.74em;font-weight:600;line-height:1.3}
-.diff-opt .db{font-weight:800;color:#8a5a00}
-.diff-opt[aria-checked=true]{background:#fff;border-color:var(--dc,#14B8C4);box-shadow:0 3px 0 rgba(0,0,0,.18)}
-.diff-opt[aria-checked=true] .dd,.diff-opt[aria-checked=true] .db{display:block}
-.diff-opt.d-easy{--dc:#2E9E5B} .diff-opt.d-medium{--dc:#1D8FE1} .diff-opt.d-hard{--dc:#E8761F} .diff-opt.d-expert{--dc:#B3261E}
-#diff-pick h2{font-size:1.5em}
 .set-diff{flex-direction:column;align-items:stretch;gap:10px}
 .set-diff b{display:block}
 .seg{display:flex;gap:6px}
 .seg-btn{flex:1;min-height:44px;padding:6px 8px;border-radius:14px;background:#e6eef1;color:var(--ink);font-weight:800;font-size:.9em;border:3px solid transparent}
 .seg-btn[aria-checked=true]{background:var(--ocean);color:#fff;border-color:var(--sun)}
-.seg4 .seg-btn.d-easy[aria-checked=true]{background:#2E9E5B} .seg4 .seg-btn.d-medium[aria-checked=true]{background:#1D8FE1} .seg4 .seg-btn.d-hard[aria-checked=true]{background:#E8761F} .seg4 .seg-btn.d-expert[aria-checked=true]{background:#B3261E}
-.bests{margin-top:2px}
-#g-diff{font-size:1em;padding:0 9px}
 
 /* ---------- island map ---------- */
 .view-toggle{display:flex;gap:6px;background:rgba(255,255,255,.18);padding:4px;border-radius:18px;margin:0 0 10px;position:relative;z-index:1}

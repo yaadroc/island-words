@@ -6,13 +6,14 @@
   var PALETTE = ['#FFB4A2', '#FFE08A', '#9BE3B4', '#8EE3EA', '#D9B8F2', '#FFC2D6', '#B3C8FA', '#FFD29A'];
 
   /* ---------- save data ---------- */
-  var SAVE_V = 3; // v3 adds starsBy (best stars per puzzle per difficulty) + difficulty/map settings
-  function defSave() { return { v: SAVE_V, coins: 50, stars: {}, starsBy: {}, settings: { sound: true, relax: false, large: false, difficulty: 'medium', askDifficulty: true, islandView: 'map', boardZoom: 'auto', zoomBy: {} }, daily: { last: '', streak: 0, done: {} }, unlocked: {} }; }
+  var SAVE_V = 4; // v4: difficulty picker removed; everything plays at Medium. starsBy kept (flattened to .medium) for compatibility
+  function defSave() { return { v: SAVE_V, coins: 50, stars: {}, starsBy: {}, settings: { sound: true, relax: false, large: false, islandView: 'map', boardZoom: 'auto', zoomBy: {} }, daily: { last: '', streak: 0, done: {} }, unlocked: {} }; }
   /* Older saves (no starsBy) were all played at the classic level: count them as Medium. */
   function migrateStarsBy(s) {
     var by = {}, st = s.stars || {}, id, d;
     if (s.starsBy && typeof s.starsBy === 'object') for (id in s.starsBy) { by[id] = {}; for (d in s.starsBy[id]) if (G.DIFFS[d]) by[id][d] = Math.max(0, Math.min(3, s.starsBy[id][d] | 0)); }
     for (id in st) if (st[id] > 0 && !(by[id] && Object.keys(by[id]).length)) by[id] = { medium: Math.min(3, st[id] | 0) };
+    for (id in by) { var best = 0; for (d in by[id]) best = Math.max(best, d === 'easy' ? Math.min(2, by[id][d]) : by[id][d]); by[id] = best > 0 ? { medium: best } : {}; } // difficulty is gone: one best per puzzle
     return by;
   }
   /* v1 saves had no 'unlocked' list. Islands were unlocked by the old rules; keep them open after content updates. */
@@ -39,12 +40,12 @@
     try {
       var s = JSON.parse(localStorage.getItem(KEY));
       if (s && typeof s === 'object') { var d = defSave(); var out = { v: SAVE_V, coins: s.coins | 0, stars: s.stars || {}, starsBy: migrateStarsBy(s), settings: Object.assign(d.settings, s.settings), daily: Object.assign(d.daily, s.daily), unlocked: migrateUnlocked(s) };
-        if (!G.DIFFS[out.settings.difficulty]) out.settings.difficulty = 'medium';
+        delete out.settings.difficulty; delete out.settings.askDifficulty;
+        Object.keys(out.starsBy).forEach(function (id) { var b = out.starsBy[id].medium | 0; if (b > (out.stars[id] | 0)) out.stars[id] = b; }); // stars from any past difficulty keep counting toward unlocks
         if (out.settings.islandView !== 'list') out.settings.islandView = 'map';
-        out.settings.askDifficulty = out.settings.askDifficulty !== false;
         if (['auto', 'fit', '1.5', '2'].indexOf(out.settings.boardZoom) < 0) out.settings.boardZoom = 'auto';
         var zb = out.settings.zoomBy; if (!zb || typeof zb !== 'object' || Array.isArray(zb)) zb = {};
-        Object.keys(zb).forEach(function (k) { var v = +zb[k]; if (!G.DIFFS[k] || !isFinite(v)) delete zb[k]; else zb[k] = Math.max(1, Math.min(2.5, v)); });
+        Object.keys(zb).forEach(function (k) { var v = +zb[k]; if (k !== 'medium' || !isFinite(v)) delete zb[k]; else zb[k] = Math.max(1, Math.min(2.5, v)); });
         out.settings.zoomBy = zb;
         return out; }
     } catch (e) {}
@@ -243,7 +244,6 @@
       var meta = h('div', { class: 'meta' }, h('h3', { text: p.title }),
         h('div', null, h('span', { class: 'chip', text: p.theme }), h('span', { class: 'chip', text: p.words.length + ' words' })));
       meta.appendChild(open ? h('div', { class: 'stars', html: starsStr(st) }) : h('div', { class: 'lockmsg', text: '\uD83D\uDD12 Finish the previous puzzle' }));
-      var bests = bestsText(p.id); if (open && bests) meta.appendChild(h('div', { class: 'sub bests', text: 'Best: ' + bests }));
       cards.appendChild(h('button', { class: 'card' + (open ? '' : ' locked'), 'data-puzzle': p.id, onclick: function () {
         if (open) choosePuzzle(p, { isl: isl, from: 'island' }); else toast('Finish the previous puzzle first');
       } }, h('div', { class: 'badge', style: 'background:' + isl.color, text: String(idx + 1) }), meta));
@@ -263,15 +263,7 @@
       } });
       return h('div', { class: 'card set-row' }, h('div', null, h('b', { text: label }), h('span', { class: 'sub', text: desc })), sw);
     }
-    var dsel = h('div', { class: 'card set-diff' }, h('div', null, h('b', { text: 'Default difficulty' }), h('span', { class: 'sub', id: 'set-diff-desc', text: G.diffOf(save.settings.difficulty).desc })));
-    var dgrp = h('div', { class: 'seg seg4', role: 'radiogroup', 'aria-label': 'Default difficulty' });
-    G.DIFF_ORDER.forEach(function (k) {
-      dgrp.appendChild(h('button', { class: 'seg-btn d-' + k, id: 'set-diff-' + k, role: 'radio', 'aria-checked': String(save.settings.difficulty === k), onclick: function () {
-        save.settings.difficulty = k; persist(); G.DIFF_ORDER.forEach(function (j) { $('set-diff-' + j).setAttribute('aria-checked', String(j === k)); }); $('set-diff-desc').textContent = G.DIFFS[k].desc;
-      } }, G.DIFFS[k].name));
-    });
-    dsel.appendChild(dgrp); cards.appendChild(dsel);
-    var zsel = h('div', { class: 'card set-diff' }, h('div', null, h('b', { text: 'Default board zoom' }), h('span', { class: 'sub', id: 'set-zoom-desc', text: 'Auto zooms Expert so letters stay easy to hit. Use the + / \u2212 / Fit buttons on the board any time.' })));
+    var zsel = h('div', { class: 'card set-diff' }, h('div', null, h('b', { text: 'Default board zoom' }), h('span', { class: 'sub', id: 'set-zoom-desc', text: 'Use the + / \u2212 / Fit buttons on the board any time.' })));
     var zgrp = h('div', { class: 'seg seg4', role: 'radiogroup', 'aria-label': 'Default board zoom' });
     [['auto', 'Auto'], ['fit', 'Fit'], ['1.5', '1.5\u00D7'], ['2', '2\u00D7']].forEach(function (o) {
       zgrp.appendChild(h('button', { class: 'seg-btn', id: 'set-zoom-' + o[0], role: 'radio', 'aria-checked': String(save.settings.boardZoom === o[0]), onclick: function () {
@@ -280,7 +272,6 @@
       } }, o[1]));
     });
     zsel.appendChild(zgrp); cards.appendChild(zsel);
-    cards.appendChild(row('set-ask', 'Ask before each puzzle', 'Pick a difficulty every time you start', 'askDifficulty'));
     cards.appendChild(row('set-sound', 'Sound', 'Beeps when you find words', 'sound'));
     cards.appendChild(row('set-relax', 'Relax mode', 'No timer, just play', 'relax'));
     cards.appendChild(row('set-large', 'Large text', 'Bigger text for easier reading', 'large'));
@@ -319,40 +310,10 @@
     }
   }
 
-  /* ---------- difficulty ---------- */
+  /* ---------- puzzle build (difficulty is internal: always Medium) ---------- */
   var buildCache = {};
   function buildFor(puz, dk, seed) { var k = puz.id + '|' + dk + '|' + seed; return buildCache[k] || (buildCache[k] = G.build(puz, dk, seed)); }
-  function bestsText(id) {
-    var by = save.starsBy[id], out = [];
-    if (!by) return '';
-    G.DIFF_ORDER.forEach(function (k) { if (by[k] > 0) out.push(G.DIFFS[k].name + ' ' + '\u2605'.repeat(by[k])); });
-    return out.join(' \u00B7 ');
-  }
-  function diffSpec(d, b) {
-    var dirs = b.gen.size && (d.dirs ? d.dirs.length : G.LEVELS[b.gen.level].dirs.length);
-    return b.size + '\u00D7' + b.size + ' \u00B7 ' + b.words.length + ' words \u00B7 ' + (dirs <= 2 ? 'right/down' : dirs <= 4 ? '4 directions' : '8 directions') +
-      ' \u00B7 hint ' + d.hintCost + (d.maxHints ? ' (max ' + d.maxHints + ')' : '') + ' \u00B7 coins \u00D7' + d.coinMult;
-  }
-  /* The puzzle-start flow: pick a difficulty (pre-selected from Settings), or start straight away if "Ask" is off. */
-  function choosePuzzle(puz, opts) {
-    opts = opts || {};
-    if (save.settings.askDifficulty === false) return startPuzzle(puz, opts);
-    var seed = puz.seed != null ? puz.seed : G.hash('island-' + puz.id), chosen = save.settings.difficulty, btns = {};
-    var card = h('div', { id: 'diff-pick' }, h('h2', { text: 'Choose difficulty' }), h('div', { class: 'sub', style: 'margin-bottom:8px', text: opts.daily ? 'Daily Puzzle' : puz.title }));
-    var grp = h('div', { class: 'diff-list', role: 'radiogroup', 'aria-label': 'Difficulty' });
-    G.DIFF_ORDER.forEach(function (k) {
-      var d = G.DIFFS[k], b = buildFor(puz, k, seed), by = !opts.daily && save.starsBy[puz.id], best = by && by[k] ? '\u2605'.repeat(by[k]) : '';
-      var btn = h('button', { class: 'diff-opt d-' + k, id: 'diff-' + k, role: 'radio', 'aria-checked': String(chosen === k), onclick: function () {
-        chosen = k; G.DIFF_ORDER.forEach(function (j) { btns[j].setAttribute('aria-checked', String(j === k)); });
-      } }, h('b', { text: d.name }), h('span', { class: 'ds', text: diffSpec(d, b) }), h('span', { class: 'dd', text: d.desc }), best ? h('span', { class: 'db', text: 'Your best: ' + best }) : null);
-      btns[k] = btn; grp.appendChild(btn);
-    });
-    card.appendChild(grp);
-    card.appendChild(h('div', { class: 'modal-btns' },
-      h('button', { class: 'btn primary', id: 'diff-start', style: 'min-height:60px;font-size:1.1em', onclick: function () { closeModal(); startPuzzle(puz, Object.assign({}, opts, { diff: chosen })); } }, 'Start'),
-      h('button', { class: 'btn', id: 'diff-cancel', onclick: closeModal }, 'Cancel')));
-    openModal(card);
-  }
+  function choosePuzzle(puz, opts) { startPuzzle(puz, opts || {}); } // no picker: always starts immediately
 
   /* ---------- game ---------- */
   var game = null, timerId = null;
@@ -362,13 +323,12 @@
   }
   function startPuzzle(puz, opts) {
     var seed = puz.seed != null ? puz.seed : G.hash('island-' + puz.id);
-    var dk = (opts && opts.diff) || save.settings.difficulty, bld = buildFor(puz, dk, seed), gen = bld.gen;
+    var bld = buildFor(puz, 'medium', seed), gen = bld.gen;
     game = { puz: puz, gen: gen, words: bld.words, diff: bld.diff, opts: opts || {}, found: {}, foundCount: 0, hints: 0, elapsed: 0, relax: !!save.settings.relax, done: false, hintCells: {}, colorIdx: 0 };
     show('game');
     var isl = opts && opts.isl;
     $('g-name').textContent = opts && opts.daily ? 'Daily Puzzle' : puz.title;
     $('g-sub').textContent = (opts && opts.daily ? dateKey() : (isl ? isl.name : '')) + ' \u00B7 ' + gen.size + '\u00D7' + gen.size;
-    var db = $('g-diff'); db.textContent = game.diff.name; db.className = 'dbadge d-' + game.diff.key; db.setAttribute('aria-label', 'Difficulty: ' + game.diff.name);
     $('g-timer').textContent = game.relax ? 'Relax' : '0:00';
     buildBoard(); buildWords(); updateStats();
     startTimer();
@@ -408,7 +368,7 @@
     if (!zoomAuto) return Math.max(ZMIN, Math.min(ZMAX, saved));
     var m = save.settings.boardZoom;
     if (m === 'fit') return 1; if (m === '1.5') return 1.5; if (m === '2') return 2;
-    return d === 'expert' ? comfyZoom() : 1;
+    return 1;
   }
   function centerView() { var b = $('board'); b.scrollLeft = (b.scrollWidth - b.clientWidth) / 2; b.scrollTop = (b.scrollHeight - b.clientHeight) / 2; }
   function cellPx() { var c = document.querySelector('#board-grid .cell'); return c ? c.getBoundingClientRect().width : 0; }
@@ -591,15 +551,14 @@
     for (var i = 0; i < 3; i++) big.appendChild(h('span', { class: i < stars ? '' : 'off', style: 'animation-delay:' + (0.2 + i * 0.25) + 's', text: '\u2605' }));
     var card = h('div', { id: 'complete' }, h('h2', { text: 'Puzzle Complete!' }), big,
       h('div', { class: 'earn' }, h('div', { class: 'pill' }, coinEl(), h('b', { id: 'earned', text: '+' + coins })), h('div', { class: 'pill', text: game.relax ? 'Relax mode' : 'Time ' + fmt(game.elapsed) })));
-    card.appendChild(h('div', { class: 'sub' }, h('span', { class: 'dbadge d-' + D_.key, text: D_.name }), ' coins \u00D7' + mult + (newBest ? ' \u00B7 new best!' : '')));
-    if (!o.daily && stars > D_.starCap) card.appendChild(h('div', { class: 'sub', text: 'Counts as ' + credit + '\u2605 toward unlocking islands (Easy max ' + D_.starCap + ')' }));
+    card.appendChild(h('div', { class: 'sub', text: 'coins \u00D7' + mult + (newBest ? ' \u00B7 new best!' : '') }));
     if (bonusTxt) card.appendChild(h('div', { class: 'sub', style: 'font-weight:800;color:#2E9E5B', text: bonusTxt }));
     if (game.hints) card.appendChild(h('div', { class: 'sub', text: 'Hints used: ' + game.hints }));
     card.appendChild(h('div', { class: 'fact' }, h('b', { text: 'Fun fact: ' }), puz.fact));
     var btns = h('div', { class: 'modal-btns' }), nx = null;
     if (!o.daily) nx = nextAfter(o.isl, puz);
     if (nx) btns.appendChild(h('button', { class: 'btn primary', id: 'btn-next', style: 'min-height:60px;font-size:1.1em', onclick: function () { closeModal(); choosePuzzle(nx.p, { isl: nx.isl, from: o.from }); } }, 'Next Puzzle'));
-    btns.appendChild(h('button', { class: 'btn sun', id: 'btn-replay', onclick: function () { closeModal(); startPuzzle(puz, Object.assign({}, o, { diff: game.diff.key })); } }, 'Play Again'));
+    btns.appendChild(h('button', { class: 'btn sun', id: 'btn-replay', onclick: function () { closeModal(); startPuzzle(puz, o); } }, 'Play Again'));
     btns.appendChild(h('button', { class: 'btn', id: 'btn-done-menu', onclick: function () { closeModal(); backFromGame(); } }, 'Back'));
     card.appendChild(btns); openModal(card); confetti();
   }
