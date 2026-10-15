@@ -6,7 +6,15 @@
   var PALETTE = ['#FFB4A2', '#FFE08A', '#9BE3B4', '#8EE3EA', '#D9B8F2', '#FFC2D6', '#B3C8FA', '#FFD29A'];
 
   /* ---------- save data ---------- */
-  function defSave() { return { coins: 50, stars: {}, settings: { sound: true, relax: false, large: false }, daily: { last: '', streak: 0, done: {} }, unlocked: {} }; }
+  var SAVE_V = 3; // v3 adds starsBy (best stars per puzzle per difficulty) + difficulty/map settings
+  function defSave() { return { v: SAVE_V, coins: 50, stars: {}, starsBy: {}, settings: { sound: true, relax: false, large: false, difficulty: 'medium', askDifficulty: true, islandView: 'map' }, daily: { last: '', streak: 0, done: {} }, unlocked: {} }; }
+  /* Older saves (no starsBy) were all played at the classic level: count them as Medium. */
+  function migrateStarsBy(s) {
+    var by = {}, st = s.stars || {}, id, d;
+    if (s.starsBy && typeof s.starsBy === 'object') for (id in s.starsBy) { by[id] = {}; for (d in s.starsBy[id]) if (G.DIFFS[d]) by[id][d] = Math.max(0, Math.min(3, s.starsBy[id][d] | 0)); }
+    for (id in st) if (st[id] > 0 && !(by[id] && Object.keys(by[id]).length)) by[id] = { medium: Math.min(3, st[id] | 0) };
+    return by;
+  }
   /* v1 saves had no 'unlocked' list. Islands were unlocked by the old rules; keep them open after content updates. */
   var LEGACY = [['jamaica', 0, ['jm1', 'jm2', 'jm3', 'jm4']], ['bahamas', 6, ['bs1', 'bs2', 'bs3', 'bs4']], ['trinidad', 15, ['tt1', 'tt2', 'tt3', 'tt4']],
     ['barbados', 24, ['bb1', 'bb2', 'bb3']], ['dominican', 32, ['dr1', 'dr2', 'dr3']], ['stlucia', 40, ['lc1', 'lc2', 'lc3']]];
@@ -30,7 +38,11 @@
   function load() {
     try {
       var s = JSON.parse(localStorage.getItem(KEY));
-      if (s && typeof s === 'object') { var d = defSave(); return { coins: s.coins | 0, stars: s.stars || {}, settings: Object.assign(d.settings, s.settings), daily: Object.assign(d.daily, s.daily), unlocked: migrateUnlocked(s) }; }
+      if (s && typeof s === 'object') { var d = defSave(); var out = { v: SAVE_V, coins: s.coins | 0, stars: s.stars || {}, starsBy: migrateStarsBy(s), settings: Object.assign(d.settings, s.settings), daily: Object.assign(d.daily, s.daily), unlocked: migrateUnlocked(s) };
+        if (!G.DIFFS[out.settings.difficulty]) out.settings.difficulty = 'medium';
+        if (out.settings.islandView !== 'list') out.settings.islandView = 'map';
+        out.settings.askDifficulty = out.settings.askDifficulty !== false;
+        return out; }
     } catch (e) {}
     return defSave();
   }
@@ -142,9 +154,9 @@
     el.appendChild(h('div', { class: 'logo' }, h('h1', { html: 'ISLAND<span>WORDS</span>' }), tiles, h('p', { text: D.tagline })));
     var nx = nextPuzzle();
     var play = h('button', { class: 'btn primary', id: 'btn-play', onclick: function () {
-      var n = nextPuzzle(); if (n) startPuzzle(n.p, { isl: n.isl, from: 'menu' }); else show('islands');
+      var n = nextPuzzle(); if (n) choosePuzzle(n.p, { isl: n.isl, from: 'menu' }); else show('islands');
     } }, 'PLAY ISLAND ADVENTURE');
-    var daily = h('button', { class: 'btn sun', id: 'btn-daily', onclick: function () { startDaily(); } },
+    var daily = h('button', { class: 'btn sun', id: 'btn-daily', onclick: function () { choosePuzzle(G.dailyPuzzle(dateKey()), { daily: dateKey(), from: 'menu' }); } },
       h('span', { text: 'Daily Puzzle' }), h('small', { text: doneToday ? 'Done today \u2713 \u00B7 streak ' + streak : (streak ? 'Streak ' + streak + ' day' + (streak > 1 ? 's' : '') : 'New every day') }));
     var explore = h('button', { class: 'btn palm', id: 'btn-islands', onclick: function () { show('islands'); } }, 'Explore Islands');
     var set = h('button', { class: 'btn turq', id: 'btn-settings', onclick: function () { show('settings'); } }, 'Settings');
@@ -152,10 +164,58 @@
     el.appendChild(h('div', { class: 'menu-btns' }, play, h('div', { class: 'row2' }, daily, explore), h('div', { class: 'row2' }, set, store)));
   }
 
-  /* ---------- islands ---------- */
+  /* ---------- islands: map view + list view ---------- */
+  var mapView = { z: 1, tx: 0, ty: 0 }, curMap = null;
+  function islandInfo(id) {
+    var i = D.islands.findIndex(function (x) { return x.id === id; }), isl = D.islands[i], open = islandUnlocked(i), got = 0, done = 0;
+    isl.puzzles.forEach(function (p) { got += save.stars[p.id] || 0; if (save.stars[p.id] > 0) done++; });
+    return { i: i, isl: isl, open: open, got: got, max: isl.puzzles.length * 3, done: done, total: isl.puzzles.length, req: isl.starsReq, have: totalStars(),
+      state: !open ? 'locked' : (done === isl.puzzles.length ? 'complete' : 'open') };
+  }
+  function openIsland(id) {
+    var inf = islandInfo(id);
+    if (inf.open) renderIslandPuzzles(inf.isl);
+    else { var msg = 'Locked: ' + inf.isl.name + ' needs ' + inf.req + ' stars (you have ' + inf.have + ') or all earlier puzzles finished'; toast(msg); var n = $('map-note'); if (n) n.textContent = '\uD83D\uDD12 ' + msg; }
+  }
+  function setIslandView(v) { save.settings.islandView = v; persist(); renderIslands(); }
   function renderIslands() {
-    var el = $('screen-islands'); el.innerHTML = '';
+    var el = $('screen-islands'); el.innerHTML = ''; curMap = null;
     el.appendChild(header('Explore Islands', function () { show('menu'); }));
+    var view = save.settings.islandView === 'list' ? 'list' : 'map';
+    function tb(id, label, v) { return h('button', { class: 'seg-btn', id: id, role: 'radio', 'aria-checked': String(view === v), 'aria-label': label + ' view', onclick: function () { if (view !== v) setIslandView(v); } }, label); }
+    el.appendChild(h('div', { class: 'view-toggle', role: 'radiogroup', 'aria-label': 'Island view' }, tb('view-map', '\uD83D\uDDFA Map', 'map'), tb('view-list', '\u2630 List', 'list')));
+    if (view === 'list') return renderIslandList(el);
+    var geo = window.IWMap.GEO, specials = D.islands.filter(function (x) { return !geo[x.id]; });
+    var layout = h('div', { class: 'map-layout' });
+    var box = h('div', { class: 'imap-box' });
+    layout.appendChild(box);
+    var side = h('div', { class: 'map-side' });
+    var sp = h('div', { class: 'special', role: 'group', 'aria-label': 'Special sets (not places on the map)' }, h('h3', { text: 'Special Sets' }));
+    var grid = h('div', { class: 'special-grid' });
+    specials.forEach(function (isl) {
+      var inf = islandInfo(isl.id);
+      var b = h('button', { class: 'sp-tile ' + inf.state, 'data-island': isl.id, 'data-state': inf.state,
+        'aria-label': isl.name + ', ' + (inf.open ? (inf.state === 'complete' ? 'completed, ' : 'unlocked, ') + inf.got + ' of ' + inf.max + ' stars' : 'locked, needs ' + inf.req + ' stars or all earlier puzzles finished'), onclick: function () { openIsland(isl.id); } },
+        h('i', { class: 'sp-dot', style: 'background:' + (inf.open ? isl.color : '#8da4ad') }), h('span', { class: 'sp-name', text: isl.name }),
+        h('span', { class: 'sp-sub', text: inf.open ? '\u2605 ' + inf.got + '/' + inf.max + (inf.state === 'complete' ? ' \u2713' : '') : '\uD83D\uDD12 ' + inf.req + '\u2605' }));
+      grid.appendChild(b);
+    });
+    sp.appendChild(grid); side.appendChild(sp);
+    side.appendChild(h('div', { class: 'map-note', id: 'map-note', role: 'status', 'aria-live': 'polite', text: 'Drag to pan, pinch to zoom. Tap an island to play.' }));
+    layout.appendChild(side); el.appendChild(layout);
+    var ctl = h('div', { class: 'imap-ctl' },
+      h('button', { class: 'imap-btn', id: 'map-zin', 'aria-label': 'Zoom in', onclick: function () { curMap.zoomBy(1.6); } }, '+'),
+      h('button', { class: 'imap-btn', id: 'map-zout', 'aria-label': 'Zoom out', onclick: function () { curMap.zoomBy(1 / 1.6); } }, '\u2212'),
+      h('button', { class: 'imap-btn', id: 'map-fit', 'aria-label': 'Reset map view', onclick: function () { curMap.fit(); } }, '\u2316'));
+    box.appendChild(ctl);
+    box.appendChild(h('div', { class: 'imap-chips' },
+      h('button', { class: 'imap-chip', id: 'map-la', onclick: function () { curMap.focusRegion('lesser'); } }, 'Lesser Antilles'),
+      h('button', { class: 'imap-chip', id: 'map-ga', onclick: function () { curMap.focusRegion('greater'); } }, 'Greater Antilles')));
+    curMap = window.IWMap.create(box, { islands: D.islands, view: mapView, info: islandInfo, open: openIsland,
+      onAmbiguous: function () { var n = $('map-note'); if (n) n.textContent = 'Islands are close together here: zoomed in so you can pick one.'; } });
+    curMap.update();
+  }
+  function renderIslandList(el) {
     var cards = h('div', { class: 'cards' });
     D.islands.forEach(function (isl, i) {
       var open = islandUnlocked(i), got = 0, max = isl.puzzles.length * 3;
@@ -175,12 +235,13 @@
     el.appendChild(header(isl.name, function () { show('islands'); }));
     var cards = h('div', { class: 'cards' });
     isl.puzzles.forEach(function (p, idx) {
-      var open = puzzleUnlocked(isl, idx), st = save.stars[p.id] || 0, L = G.LEVELS[p.level];
+      var open = puzzleUnlocked(isl, idx), st = save.stars[p.id] || 0;
       var meta = h('div', { class: 'meta' }, h('h3', { text: p.title }),
-        h('div', null, h('span', { class: 'chip', text: p.theme }), h('span', { class: 'chip', text: L.size + '\u00D7' + L.size }), h('span', { class: 'chip', text: p.words.length + ' words' })));
+        h('div', null, h('span', { class: 'chip', text: p.theme }), h('span', { class: 'chip', text: p.words.length + ' words' })));
       meta.appendChild(open ? h('div', { class: 'stars', html: starsStr(st) }) : h('div', { class: 'lockmsg', text: '\uD83D\uDD12 Finish the previous puzzle' }));
+      var bests = bestsText(p.id); if (open && bests) meta.appendChild(h('div', { class: 'sub bests', text: 'Best: ' + bests }));
       cards.appendChild(h('button', { class: 'card' + (open ? '' : ' locked'), 'data-puzzle': p.id, onclick: function () {
-        if (open) startPuzzle(p, { isl: isl, from: 'island' }); else toast('Finish the previous puzzle first');
+        if (open) choosePuzzle(p, { isl: isl, from: 'island' }); else toast('Finish the previous puzzle first');
       } }, h('div', { class: 'badge', style: 'background:' + isl.color, text: String(idx + 1) }), meta));
     });
     el.appendChild(cards);
@@ -198,6 +259,15 @@
       } });
       return h('div', { class: 'card set-row' }, h('div', null, h('b', { text: label }), h('span', { class: 'sub', text: desc })), sw);
     }
+    var dsel = h('div', { class: 'card set-diff' }, h('div', null, h('b', { text: 'Default difficulty' }), h('span', { class: 'sub', id: 'set-diff-desc', text: G.diffOf(save.settings.difficulty).desc })));
+    var dgrp = h('div', { class: 'seg seg4', role: 'radiogroup', 'aria-label': 'Default difficulty' });
+    G.DIFF_ORDER.forEach(function (k) {
+      dgrp.appendChild(h('button', { class: 'seg-btn d-' + k, id: 'set-diff-' + k, role: 'radio', 'aria-checked': String(save.settings.difficulty === k), onclick: function () {
+        save.settings.difficulty = k; persist(); G.DIFF_ORDER.forEach(function (j) { $('set-diff-' + j).setAttribute('aria-checked', String(j === k)); }); $('set-diff-desc').textContent = G.DIFFS[k].desc;
+      } }, G.DIFFS[k].name));
+    });
+    dsel.appendChild(dgrp); cards.appendChild(dsel);
+    cards.appendChild(row('set-ask', 'Ask before each puzzle', 'Pick a difficulty every time you start', 'askDifficulty'));
     cards.appendChild(row('set-sound', 'Sound', 'Beeps when you find words', 'sound'));
     cards.appendChild(row('set-relax', 'Relax mode', 'No timer, just play', 'relax'));
     cards.appendChild(row('set-large', 'Large text', 'Bigger text for easier reading', 'large'));
@@ -236,6 +306,41 @@
     }
   }
 
+  /* ---------- difficulty ---------- */
+  var buildCache = {};
+  function buildFor(puz, dk, seed) { var k = puz.id + '|' + dk + '|' + seed; return buildCache[k] || (buildCache[k] = G.build(puz, dk, seed)); }
+  function bestsText(id) {
+    var by = save.starsBy[id], out = [];
+    if (!by) return '';
+    G.DIFF_ORDER.forEach(function (k) { if (by[k] > 0) out.push(G.DIFFS[k].name + ' ' + '\u2605'.repeat(by[k])); });
+    return out.join(' \u00B7 ');
+  }
+  function diffSpec(d, b) {
+    var dirs = b.gen.size && (d.dirs ? d.dirs.length : G.LEVELS[b.gen.level].dirs.length);
+    return b.size + '\u00D7' + b.size + ' \u00B7 ' + b.words.length + ' words \u00B7 ' + (dirs <= 2 ? 'right/down' : dirs <= 4 ? '4 directions' : '8 directions') +
+      ' \u00B7 hint ' + d.hintCost + (d.maxHints ? ' (max ' + d.maxHints + ')' : '') + ' \u00B7 coins \u00D7' + d.coinMult;
+  }
+  /* The puzzle-start flow: pick a difficulty (pre-selected from Settings), or start straight away if "Ask" is off. */
+  function choosePuzzle(puz, opts) {
+    opts = opts || {};
+    if (save.settings.askDifficulty === false) return startPuzzle(puz, opts);
+    var seed = puz.seed != null ? puz.seed : G.hash('island-' + puz.id), chosen = save.settings.difficulty, btns = {};
+    var card = h('div', { id: 'diff-pick' }, h('h2', { text: 'Choose difficulty' }), h('div', { class: 'sub', style: 'margin-bottom:8px', text: opts.daily ? 'Daily Puzzle' : puz.title }));
+    var grp = h('div', { class: 'diff-list', role: 'radiogroup', 'aria-label': 'Difficulty' });
+    G.DIFF_ORDER.forEach(function (k) {
+      var d = G.DIFFS[k], b = buildFor(puz, k, seed), by = !opts.daily && save.starsBy[puz.id], best = by && by[k] ? '\u2605'.repeat(by[k]) : '';
+      var btn = h('button', { class: 'diff-opt d-' + k, id: 'diff-' + k, role: 'radio', 'aria-checked': String(chosen === k), onclick: function () {
+        chosen = k; G.DIFF_ORDER.forEach(function (j) { btns[j].setAttribute('aria-checked', String(j === k)); });
+      } }, h('b', { text: d.name }), h('span', { class: 'ds', text: diffSpec(d, b) }), h('span', { class: 'dd', text: d.desc }), best ? h('span', { class: 'db', text: 'Your best: ' + best }) : null);
+      btns[k] = btn; grp.appendChild(btn);
+    });
+    card.appendChild(grp);
+    card.appendChild(h('div', { class: 'modal-btns' },
+      h('button', { class: 'btn primary', id: 'diff-start', style: 'min-height:60px;font-size:1.1em', onclick: function () { closeModal(); startPuzzle(puz, Object.assign({}, opts, { diff: chosen })); } }, 'Start'),
+      h('button', { class: 'btn', id: 'diff-cancel', onclick: closeModal }, 'Cancel')));
+    openModal(card);
+  }
+
   /* ---------- game ---------- */
   var game = null, timerId = null;
   function startDaily() {
@@ -244,12 +349,13 @@
   }
   function startPuzzle(puz, opts) {
     var seed = puz.seed != null ? puz.seed : G.hash('island-' + puz.id);
-    var gen = G.generate(puz.words, puz.level, seed);
-    game = { puz: puz, gen: gen, opts: opts || {}, found: {}, foundCount: 0, hints: 0, elapsed: 0, relax: !!save.settings.relax, done: false, hintCells: {}, colorIdx: 0 };
+    var dk = (opts && opts.diff) || save.settings.difficulty, bld = buildFor(puz, dk, seed), gen = bld.gen;
+    game = { puz: puz, gen: gen, words: bld.words, diff: bld.diff, opts: opts || {}, found: {}, foundCount: 0, hints: 0, elapsed: 0, relax: !!save.settings.relax, done: false, hintCells: {}, colorIdx: 0 };
     show('game');
     var isl = opts && opts.isl;
     $('g-name').textContent = opts && opts.daily ? 'Daily Puzzle' : puz.title;
-    $('g-sub').textContent = (opts && opts.daily ? dateKey() : (isl ? isl.name : '')) + ' \u00B7 ' + G.LEVELS[puz.level].name + ' ' + gen.size + '\u00D7' + gen.size;
+    $('g-sub').textContent = (opts && opts.daily ? dateKey() : (isl ? isl.name : '')) + ' \u00B7 ' + gen.size + '\u00D7' + gen.size;
+    var db = $('g-diff'); db.textContent = game.diff.name; db.className = 'dbadge d-' + game.diff.key; db.setAttribute('aria-label', 'Difficulty: ' + game.diff.name);
     $('g-timer').textContent = game.relax ? 'Relax' : '0:00';
     buildBoard(); buildWords(); updateStats();
     startTimer();
@@ -262,8 +368,11 @@
   function stopTimer() { if (timerId) { clearInterval(timerId); timerId = null; } }
   function updateStats() {
     $('g-coins').textContent = save.coins;
-    $('g-count').textContent = game.foundCount + '/' + game.puz.words.length + ' words';
-    $('g-hint').disabled = false;
+    $('g-count').textContent = game.foundCount + '/' + game.words.length + ' words';
+    var d = game.diff, left = d.maxHints ? d.maxHints - game.hints : null;
+    $('g-hint').innerHTML = 'Hint' + (left != null ? ' (' + left + ')' : '') + ' <small>' + d.hintCost + '</small><span class="coin"></span>';
+    $('g-hint').setAttribute('aria-label', 'Hint, costs ' + d.hintCost + ' coins' + (left != null ? ', ' + left + ' left' : ''));
+    $('g-hint').disabled = left === 0;
   }
   function buildBoard() {
     var b = $('board'), n = game.gen.size; b.innerHTML = ''; b.style.setProperty('--n', n);
@@ -273,7 +382,7 @@
   }
   function buildWords() {
     var ul = $('wordlist'); ul.innerHTML = '';
-    game.puz.words.slice().sort().forEach(function (w) { ul.appendChild(h('li', { 'data-word': w, text: w })); });
+    game.words.slice().sort().forEach(function (w) { ul.appendChild(h('li', { 'data-word': w, text: w })); });
   }
   function cellEl(r, c) { return $('board').children[r * game.gen.size + c]; }
 
@@ -327,7 +436,7 @@
     if (cells.length < 2) return;
     var str = cells.map(function (rc) { return game.gen.grid[rc[0]][rc[1]]; }).join(''), rev = str.split('').reverse().join('');
     var hit = null;
-    game.puz.words.forEach(function (w) { if (!game.found[w] && (w === str || w === rev)) hit = w; });
+    game.words.forEach(function (w) { if (!game.found[w] && (w === str || w === rev)) hit = w; });
     if (!hit) { SND.miss(); cells.forEach(function (rc) { var c = cellEl(rc[0], rc[1]); c.classList.add('miss'); setTimeout(function () { c.classList.remove('miss'); }, 300); }); return; }
     markFound(hit, cells);
   }
@@ -338,39 +447,42 @@
     var li = document.querySelector('#wordlist li[data-word="' + word + '"]'); li.classList.add('done'); li.style.setProperty('--c', color);
     var hc = game.hintCells[word]; if (hc) { cellEl(hc[0], hc[1]).classList.remove('hint'); delete game.hintCells[word]; }
     updateStats();
-    if (game.foundCount === game.puz.words.length) { game.done = true; stopTimer(); SND.done(); var gm = game; setTimeout(function () { if (game === gm && current === 'game') finish(); }, 650); } else SND.found();
+    if (game.foundCount === game.words.length) { game.done = true; stopTimer(); SND.done(); var gm = game; setTimeout(function () { if (game === gm && current === 'game') finish(); }, 650); } else SND.found();
   }
   function useHint() {
     if (!game || game.done) return;
     var left = game.gen.placements.filter(function (p) { return !game.found[p.word] && !game.hintCells[p.word]; });
     if (!left.length) { toast('A hint is already showing!'); return; }
-    if (save.coins < 10) { toast('Not enough coins (hint costs 10)'); return; }
+    var d = game.diff;
+    if (d.maxHints && game.hints >= d.maxHints) { toast('No hints left on ' + d.name); return; }
+    if (save.coins < d.hintCost) { toast('Not enough coins (hint costs ' + d.hintCost + ')'); return; }
     var p = left[Math.floor(Math.random() * left.length)];
-    save.coins -= 10; game.hints++; persist();
+    save.coins -= d.hintCost; game.hints++; persist();
     game.hintCells[p.word] = [p.r, p.c]; cellEl(p.r, p.c).classList.add('hint'); SND.hint(); updateStats();
     toast('Hint: look for the pulsing letter');
   }
 
   function calcStars() {
-    var s = 3, par = G.LEVELS[game.puz.level].par * game.puz.words.length;
+    var s = 3, par = Math.round(G.LEVELS[game.puz.level].par * game.words.length * game.diff.parMult);
     if (!game.relax) { if (game.elapsed > par * 2) s -= 2; else if (game.elapsed > par) s -= 1; }
-    if (game.hints > 0) s -= 1;
+    if (game.hints > game.diff.freeHints) s -= 1;
     return Math.max(1, s);
   }
   function finish() {
-    var puz = game.puz, o = game.opts, stars = calcStars(), coins = 0, first = false, bonusTxt = '';
+    var puz = game.puz, o = game.opts, stars = calcStars(), coins = 0, first = false, bonusTxt = '', D_ = game.diff, mult = D_.coinMult, newBest = false, credit = Math.min(stars, D_.starCap);
     if (o.daily) {
       var d = save.daily;
       if (d.done[o.daily] == null) {
         first = true; d.done[o.daily] = stars;
         d.streak = d.last === yesterdayKey() ? d.streak + 1 : 1; d.last = o.daily;
-        coins = puz.words.length * 5 + stars * 10 + 25 + 5 * Math.min(d.streak, 7);
+        coins = Math.round((game.words.length * 5 + stars * 10 + 25 + 5 * Math.min(d.streak, 7)) * mult);
         bonusTxt = 'Daily bonus + ' + d.streak + '-day streak!';
-      } else coins = 5;
+      } else coins = Math.round(5 * mult);
     } else {
-      var prev = save.stars[puz.id] || 0; first = prev === 0;
-      coins = first ? puz.words.length * 5 + stars * 10 : 5 + Math.max(0, stars - prev) * 10;
-      if (stars > prev) save.stars[puz.id] = stars;
+      var by = save.starsBy[puz.id] || (save.starsBy[puz.id] = {}), prevD = by[D_.key] || 0; first = prevD === 0;
+      coins = Math.round((first ? game.words.length * 5 + stars * 10 : 5 + Math.max(0, stars - prevD) * 10) * mult);
+      if (stars > prevD) { by[D_.key] = stars; newBest = !first; }
+      if (credit > (save.stars[puz.id] || 0)) save.stars[puz.id] = credit; // unlock credit: best of any difficulty (Easy counts up to 2 stars)
     }
     save.coins += coins; persist();
     game.result = { stars: stars, coins: coins, time: game.elapsed };
@@ -378,13 +490,15 @@
     for (var i = 0; i < 3; i++) big.appendChild(h('span', { class: i < stars ? '' : 'off', style: 'animation-delay:' + (0.2 + i * 0.25) + 's', text: '\u2605' }));
     var card = h('div', { id: 'complete' }, h('h2', { text: 'Puzzle Complete!' }), big,
       h('div', { class: 'earn' }, h('div', { class: 'pill' }, coinEl(), h('b', { id: 'earned', text: '+' + coins })), h('div', { class: 'pill', text: game.relax ? 'Relax mode' : 'Time ' + fmt(game.elapsed) })));
+    card.appendChild(h('div', { class: 'sub' }, h('span', { class: 'dbadge d-' + D_.key, text: D_.name }), ' coins \u00D7' + mult + (newBest ? ' \u00B7 new best!' : '')));
+    if (!o.daily && stars > D_.starCap) card.appendChild(h('div', { class: 'sub', text: 'Counts as ' + credit + '\u2605 toward unlocking islands (Easy max ' + D_.starCap + ')' }));
     if (bonusTxt) card.appendChild(h('div', { class: 'sub', style: 'font-weight:800;color:#2E9E5B', text: bonusTxt }));
     if (game.hints) card.appendChild(h('div', { class: 'sub', text: 'Hints used: ' + game.hints }));
     card.appendChild(h('div', { class: 'fact' }, h('b', { text: 'Fun fact: ' }), puz.fact));
     var btns = h('div', { class: 'modal-btns' }), nx = null;
     if (!o.daily) nx = nextAfter(o.isl, puz);
-    if (nx) btns.appendChild(h('button', { class: 'btn primary', id: 'btn-next', style: 'min-height:60px;font-size:1.1em', onclick: function () { closeModal(); startPuzzle(nx.p, { isl: nx.isl, from: o.from }); } }, 'Next Puzzle'));
-    btns.appendChild(h('button', { class: 'btn sun', id: 'btn-replay', onclick: function () { closeModal(); startPuzzle(puz, o); } }, 'Play Again'));
+    if (nx) btns.appendChild(h('button', { class: 'btn primary', id: 'btn-next', style: 'min-height:60px;font-size:1.1em', onclick: function () { closeModal(); choosePuzzle(nx.p, { isl: nx.isl, from: o.from }); } }, 'Next Puzzle'));
+    btns.appendChild(h('button', { class: 'btn sun', id: 'btn-replay', onclick: function () { closeModal(); startPuzzle(puz, Object.assign({}, o, { diff: game.diff.key })); } }, 'Play Again'));
     btns.appendChild(h('button', { class: 'btn', id: 'btn-done-menu', onclick: function () { closeModal(); backFromGame(); } }, 'Back'));
     card.appendChild(btns); openModal(card); confetti();
   }
@@ -414,7 +528,7 @@
   // test/debug hook
   window.IW = {
     get game() { return game; }, get save() { return save; }, G: G, D: D, dateKey: dateKey,
-    startPuzzle: startPuzzle, startDaily: startDaily, show: show, persist: persist,
+    choosePuzzle: choosePuzzle, openIsland: openIsland, islandInfo: islandInfo, get map() { return curMap; }, startPuzzle: startPuzzle, startDaily: startDaily, show: show, persist: persist,
     cellCenter: function (r, c) { var rc = cellEl(r, c).getBoundingClientRect(); return { x: rc.left + rc.width / 2, y: rc.top + rc.height / 2 }; }
   };
   init();
