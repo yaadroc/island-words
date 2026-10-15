@@ -35,7 +35,16 @@
       <div class="pill" id="g-count">0/0</div>
       <button class="btn hint-btn" id="g-hint">Hint <small>10</small><span class="coin"></span></button>
     </div>
-    <div class="board-wrap"><div id="board" class="board" role="application" aria-label="Word search grid. Swipe across letters to select a word."></div></div>
+    <div class="board-wrap">
+      <div id="board" class="board" role="application" aria-label="Word search grid. Swipe across letters to select a word. Use two fingers or the zoom buttons to zoom and move the board."></div>
+      <div class="zoom-bar" role="group" aria-label="Board zoom">
+        <button class="zbtn" id="zoom-out" aria-label="Zoom out">&minus;</button>
+        <span class="zlvl" id="zoom-lvl" aria-live="polite">1&times;</span>
+        <button class="zbtn" id="zoom-in" aria-label="Zoom in">+</button>
+        <button class="zbtn zfit" id="zoom-fit" aria-label="Fit whole board">Fit</button>
+        <button class="zbtn zpan" id="zoom-pan" aria-label="Pan mode" aria-pressed="false">&#10021;</button>
+      </div>
+    </div>
     <ul id="wordlist" class="wordlist" aria-label="Words to find"></ul>
   </section>
   <section id="screen-store" class="screen" aria-label="Premium store" hidden></section>

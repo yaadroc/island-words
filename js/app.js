@@ -7,7 +7,7 @@
 
   /* ---------- save data ---------- */
   var SAVE_V = 3; // v3 adds starsBy (best stars per puzzle per difficulty) + difficulty/map settings
-  function defSave() { return { v: SAVE_V, coins: 50, stars: {}, starsBy: {}, settings: { sound: true, relax: false, large: false, difficulty: 'medium', askDifficulty: true, islandView: 'map' }, daily: { last: '', streak: 0, done: {} }, unlocked: {} }; }
+  function defSave() { return { v: SAVE_V, coins: 50, stars: {}, starsBy: {}, settings: { sound: true, relax: false, large: false, difficulty: 'medium', askDifficulty: true, islandView: 'map', boardZoom: 'auto', zoomBy: {} }, daily: { last: '', streak: 0, done: {} }, unlocked: {} }; }
   /* Older saves (no starsBy) were all played at the classic level: count them as Medium. */
   function migrateStarsBy(s) {
     var by = {}, st = s.stars || {}, id, d;
@@ -42,6 +42,10 @@
         if (!G.DIFFS[out.settings.difficulty]) out.settings.difficulty = 'medium';
         if (out.settings.islandView !== 'list') out.settings.islandView = 'map';
         out.settings.askDifficulty = out.settings.askDifficulty !== false;
+        if (['auto', 'fit', '1.5', '2'].indexOf(out.settings.boardZoom) < 0) out.settings.boardZoom = 'auto';
+        var zb = out.settings.zoomBy; if (!zb || typeof zb !== 'object' || Array.isArray(zb)) zb = {};
+        Object.keys(zb).forEach(function (k) { var v = +zb[k]; if (!G.DIFFS[k] || !isFinite(v)) delete zb[k]; else zb[k] = Math.max(1, Math.min(2.5, v)); });
+        out.settings.zoomBy = zb;
         return out; }
     } catch (e) {}
     return defSave();
@@ -267,6 +271,15 @@
       } }, G.DIFFS[k].name));
     });
     dsel.appendChild(dgrp); cards.appendChild(dsel);
+    var zsel = h('div', { class: 'card set-diff' }, h('div', null, h('b', { text: 'Default board zoom' }), h('span', { class: 'sub', id: 'set-zoom-desc', text: 'Auto zooms Expert so letters stay easy to hit. Use the + / \u2212 / Fit buttons on the board any time.' })));
+    var zgrp = h('div', { class: 'seg seg4', role: 'radiogroup', 'aria-label': 'Default board zoom' });
+    [['auto', 'Auto'], ['fit', 'Fit'], ['1.5', '1.5\u00D7'], ['2', '2\u00D7']].forEach(function (o) {
+      zgrp.appendChild(h('button', { class: 'seg-btn', id: 'set-zoom-' + o[0], role: 'radio', 'aria-checked': String(save.settings.boardZoom === o[0]), onclick: function () {
+        save.settings.boardZoom = o[0]; save.settings.zoomBy = {}; persist();
+        ['auto', 'fit', '1.5', '2'].forEach(function (j) { $('set-zoom-' + j).setAttribute('aria-checked', String(j === o[0])); });
+      } }, o[1]));
+    });
+    zsel.appendChild(zgrp); cards.appendChild(zsel);
     cards.appendChild(row('set-ask', 'Ask before each puzzle', 'Pick a difficulty every time you start', 'askDifficulty'));
     cards.appendChild(row('set-sound', 'Sound', 'Beeps when you find words', 'sound'));
     cards.appendChild(row('set-relax', 'Relax mode', 'No timer, just play', 'relax'));
@@ -376,20 +389,77 @@
   }
   function buildBoard() {
     var b = $('board'), n = game.gen.size; b.innerHTML = ''; b.style.setProperty('--n', n);
+    var g = h('div', { class: 'board-grid', id: 'board-grid' });
     var frag = document.createDocumentFragment();
     for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) frag.appendChild(h('div', { class: 'cell', 'data-r': r, 'data-c': c, text: game.gen.grid[r][c] }));
-    b.appendChild(frag);
+    g.appendChild(frag); b.appendChild(g);
+    panMode = false; var pb = $('zoom-pan'); if (pb) pb.setAttribute('aria-pressed', 'false'); b.classList.remove('panmode');
+    zoom = 1; applyZoom(initialZoom(), null, true); b.scrollLeft = b.scrollTop = 0; centerView();
+  }
+  /* ---------- board zoom ---------- */
+  var ZMIN = 1, ZMAX = 2.5, ZSTEP = 0.5, COMFY = 22, zoom = 1, zoomAuto = true, panMode = false;
+  function frameSize() { var b = $('board'); return b.clientWidth || 288; }
+  function comfyZoom() { // zoom at which a cell is >= COMFY px
+    var n = game.gen.size, bs = frameSize(); return Math.min(ZMAX, Math.max(1, Math.ceil(((COMFY * n + 16 + 3 * (n - 1)) / bs) * 20) / 20));
+  }
+  function initialZoom() {
+    var d = game.diff.key, saved = save.settings.zoomBy && save.settings.zoomBy[d];
+    zoomAuto = !(saved > 0);
+    if (!zoomAuto) return Math.max(ZMIN, Math.min(ZMAX, saved));
+    var m = save.settings.boardZoom;
+    if (m === 'fit') return 1; if (m === '1.5') return 1.5; if (m === '2') return 2;
+    return d === 'expert' ? comfyZoom() : 1;
+  }
+  function centerView() { var b = $('board'); b.scrollLeft = (b.scrollWidth - b.clientWidth) / 2; b.scrollTop = (b.scrollHeight - b.clientHeight) / 2; }
+  function cellPx() { var c = document.querySelector('#board-grid .cell'); return c ? c.getBoundingClientRect().width : 0; }
+  function clampScroll() { var b = $('board'); b.scrollLeft = Math.max(0, Math.min(b.scrollWidth - b.clientWidth, b.scrollLeft)); b.scrollTop = Math.max(0, Math.min(b.scrollHeight - b.clientHeight, b.scrollTop)); }
+  function applyZoom(z, anchor, quiet) { // anchor = client point that should stay put
+    var b = $('board'); z = Math.max(ZMIN, Math.min(ZMAX, z)); var rect = b.getBoundingClientRect();
+    var ax = anchor ? anchor.x - rect.left : b.clientWidth / 2, ay = anchor ? anchor.y - rect.top : b.clientHeight / 2;
+    var fx = (b.scrollLeft + ax) / b.scrollWidth, fy = (b.scrollTop + ay) / b.scrollHeight;
+    zoom = z; b.style.setProperty('--z', z); b.classList.toggle('zoomed', z > 1.001);
+    b.scrollLeft = fx * b.scrollWidth - ax; b.scrollTop = fy * b.scrollHeight - ay; clampScroll();
+    var lv = $('zoom-lvl'); if (lv) lv.textContent = (Math.round(z * 100) / 100) + '\u00D7';
+    var bi = $('zoom-in'), bo = $('zoom-out'), bf = $('zoom-fit'); if (bi) { bi.disabled = z >= ZMAX - 0.001; bo.disabled = z <= ZMIN + 0.001; bf.disabled = z <= ZMIN + 0.001; }
+  }
+  function userZoom(z, anchor) { // explicit user change: remember per difficulty
+    applyZoom(z, anchor); zoomAuto = false;
+    save.settings.zoomBy[game.diff.key] = Math.round(zoom * 100) / 100; persist();
+  }
+  function stepZoom(dir) { var z = dir > 0 ? Math.floor((zoom + 0.001) / ZSTEP) * ZSTEP + ZSTEP : Math.ceil((zoom - 0.001) / ZSTEP) * ZSTEP - ZSTEP; userZoom(z); }
+  function revealCell(r, c) { // scroll so cell (r,c) is centred in the frame
+    var b = $('board'), g = $('board-grid'), n = game.gen.size, pad = 8, cw = (g.offsetWidth - 2 * pad) / n;
+    b.scrollLeft = pad + (c + .5) * cw - b.clientWidth / 2; b.scrollTop = pad + (r + .5) * cw - b.clientHeight / 2; clampScroll();
+  }
+  function initZoomUI() {
+    var b = $('board');
+    $('zoom-in').addEventListener('click', function () { stepZoom(1); });
+    $('zoom-out').addEventListener('click', function () { stepZoom(-1); });
+    $('zoom-fit').addEventListener('click', function () { userZoom(1); });
+    $('zoom-pan').addEventListener('click', function () {
+      panMode = !panMode; this.setAttribute('aria-pressed', String(panMode)); b.classList.toggle('panmode', panMode);
+      toast(panMode ? 'Pan mode: drag to move the board' : 'Select mode: swipe across letters');
+    });
+    b.addEventListener('wheel', function (e) {
+      if (!game) return; e.preventDefault();
+      var f = Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0025)); userZoom(zoom * f, { x: e.clientX, y: e.clientY });
+    }, { passive: false });
+    ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (t) { b.addEventListener(t, function (e) { e.preventDefault(); }); });
+    window.addEventListener('resize', function () {
+      if (!game || current !== 'game') return;
+      if (zoomAuto) { applyZoom(initialZoom(), null, true); centerView(); } else { applyZoom(zoom); }
+    });
   }
   function buildWords() {
     var ul = $('wordlist'); ul.innerHTML = '';
     game.words.slice().sort().forEach(function (w) { ul.appendChild(h('li', { 'data-word': w, text: w })); });
   }
-  function cellEl(r, c) { return $('board').children[r * game.gen.size + c]; }
+  function cellEl(r, c) { return $('board-grid').children[r * game.gen.size + c]; }
 
   /* pointer selection */
   var sel = null;
   function snap(e) {
-    var b = $('board'), rect = b.getBoundingClientRect(), n = game.gen.size;
+    var b = $('board-grid'), rect = b.getBoundingClientRect(), n = game.gen.size;
     var cs = getComputedStyle(b), pl = parseFloat(cs.paddingLeft), pt = parseFloat(cs.paddingTop);
     var cw = (rect.width - 2 * pl) / n, ch = (rect.height - 2 * pt) / n;
     var fx = (e.clientX - rect.left - pl) / cw, fy = (e.clientY - rect.top - pt) / ch;
@@ -411,19 +481,49 @@
     sel.cells = cells; cells.forEach(function (rc) { cellEl(rc[0], rc[1]).classList.add('sel'); });
   }
   function initBoardEvents() {
-    var b = $('board');
+    var b = $('board'), ptrs = {}, nptr = 0, lock = false, panId = null, last = null, edgeT = null, lastPt = null;
+    function pts() { return Object.keys(ptrs).map(function (k) { return ptrs[k]; }); }
+    function metrics() { var p = pts(); return { d: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) || 1, x: (p[0].x + p[1].x) / 2, y: (p[0].y + p[1].y) / 2 }; }
+    function cancelSel() { if (sel) { paintSel([]); sel = null; } stopEdge(); }
+    function stopEdge() { if (edgeT) { clearInterval(edgeT); edgeT = null; } }
+    function edgeScroll() { // while selecting, dragging near the frame edge pans the board
+      if (!sel || !lastPt || zoom <= 1.001) return stopEdge();
+      var r = b.getBoundingClientRect(), m = 26, sp = 9, dx = 0, dy = 0;
+      if (lastPt.x < r.left + m) dx = -sp; else if (lastPt.x > r.right - m) dx = sp;
+      if (lastPt.y < r.top + m) dy = -sp; else if (lastPt.y > r.bottom - m) dy = sp;
+      if (dx || dy) { b.scrollLeft += dx; b.scrollTop += dy; paintSel(lineCells(sel.start, snap(lastPt))); }
+    }
     b.addEventListener('pointerdown', function (e) {
       if (!game || game.done || (e.pointerType === 'mouse' && e.button !== 0)) return;
       e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (x) {}
-      var p = snap(e); sel = { start: p, cells: [], id: e.pointerId }; paintSel([[p.r, p.c]]);
+      if (nptr === 0) lock = false;
+      ptrs[e.pointerId] = { x: e.clientX, y: e.clientY }; nptr = Object.keys(ptrs).length;
+      if (nptr >= 2) { lock = true; cancelSel(); panId = null; last = metrics(); return; }
+      if (panMode) { panId = e.pointerId; return; }
+      var p = snap(e); sel = { start: p, cells: [], id: e.pointerId }; paintSel([[p.r, p.c]]); lastPt = { clientX: e.clientX, clientY: e.clientY, x: e.clientX, y: e.clientY };
+      stopEdge(); edgeT = setInterval(edgeScroll, 30);
     });
     b.addEventListener('pointermove', function (e) {
-      if (!sel || e.pointerId !== sel.id) return; e.preventDefault();
+      if (!ptrs[e.pointerId]) return; e.preventDefault();
+      var prev = ptrs[e.pointerId]; ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+      if (nptr >= 2) { // two-finger pinch + pan
+        var m = metrics(); if (last) {
+          applyZoom(zoom * m.d / last.d, { x: m.x, y: m.y }); b.scrollLeft -= m.x - last.x; b.scrollTop -= m.y - last.y; clampScroll();
+        } last = m; return;
+      }
+      if (lock) return;
+      if (panId === e.pointerId) { b.scrollLeft -= e.clientX - prev.x; b.scrollTop -= e.clientY - prev.y; return; }
+      if (!sel || e.pointerId !== sel.id) return;
+      lastPt = { clientX: e.clientX, clientY: e.clientY, x: e.clientX, y: e.clientY };
       paintSel(lineCells(sel.start, snap(e)));
     });
     function end(e, cancel) {
+      var had = !!ptrs[e.pointerId]; delete ptrs[e.pointerId]; nptr = Object.keys(ptrs).length;
+      if (had && last && nptr < 2) { last = null; userZoom(zoom); }
+      if (panId === e.pointerId) panId = null;
       if (!sel || e.pointerId !== sel.id) return;
-      var cells = sel.cells.slice(); paintSel([]); sel.cells.forEach(function () {}); sel = null;
+      stopEdge();
+      var cells = sel.cells.slice(); paintSel([]); sel = null;
       cells.forEach(function (rc) { cellEl(rc[0], rc[1]).classList.remove('sel'); });
       if (!cancel) submit(cells);
     }
@@ -431,6 +531,7 @@
     b.addEventListener('pointercancel', function (e) { end(e, true); });
     b.addEventListener('contextmenu', function (e) { e.preventDefault(); });
     ['touchstart', 'touchmove'].forEach(function (t) { b.addEventListener(t, function (e) { e.preventDefault(); }, { passive: false }); });
+    initZoomUI();
   }
   function submit(cells) {
     if (cells.length < 2) return;
@@ -529,6 +630,7 @@
   window.IW = {
     get game() { return game; }, get save() { return save; }, G: G, D: D, dateKey: dateKey,
     choosePuzzle: choosePuzzle, openIsland: openIsland, islandInfo: islandInfo, get map() { return curMap; }, startPuzzle: startPuzzle, startDaily: startDaily, show: show, persist: persist,
+    zoom: { get: function () { return zoom; }, set: function (z) { userZoom(z); }, step: stepZoom, reveal: revealCell, cellPx: cellPx, auto: function () { return zoomAuto; }, pan: function () { var b = $('board'); return [b.scrollLeft, b.scrollTop]; } },
     cellCenter: function (r, c) { var rc = cellEl(r, c).getBoundingClientRect(); return { x: rc.left + rc.width / 2, y: rc.top + rc.height / 2 }; }
   };
   init();
