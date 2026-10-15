@@ -1,0 +1,16 @@
+{
+  "name": "Island Words - Caribbean Word Search",
+  "short_name": "Island Words",
+  "description": "Discover the Caribbean, One Word at a Time!",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0B3C5D",
+  "theme_color": "#0B3C5D",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

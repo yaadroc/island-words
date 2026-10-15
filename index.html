@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0B3C5D">
+<meta name="description" content="Island Words - Caribbean Word Search. Discover the Caribbean, One Word at a Time!">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Island Words - Caribbean Word Search</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <div class="bg-sun" aria-hidden="true"></div>
+  <svg class="bg-waves" viewBox="0 0 400 120" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0 40 Q50 10 100 40 T200 40 T300 40 T400 40 V120 H0Z" fill="#14B8C4" opacity=".55"/>
+    <path d="M0 62 Q50 32 100 62 T200 62 T300 62 T400 62 V120 H0Z" fill="#14B8C4" opacity=".8"/>
+    <path d="M0 86 Q50 60 100 86 T200 86 T300 86 T400 86 V120 H0Z" fill="#FFC93C"/>
+  </svg>
+
+  <section id="screen-menu" class="screen" aria-label="Main menu"></section>
+  <section id="screen-islands" class="screen" aria-label="Explore islands" hidden></section>
+  <section id="screen-island" class="screen" aria-label="Island puzzles" hidden></section>
+  <section id="screen-game" class="screen" aria-label="Word search" hidden>
+    <header class="topbar">
+      <button class="icon-btn" id="g-back" aria-label="Back">&#8592;</button>
+      <div class="g-title"><div id="g-name">Puzzle</div><div id="g-sub" class="sub"></div></div>
+      <div class="pill timer" id="g-timer" aria-live="off">0:00</div>
+    </header>
+    <div class="g-stats">
+      <div class="pill"><span class="coin"></span><b id="g-coins">0</b></div>
+      <div class="pill" id="g-count">0/0</div>
+      <button class="btn hint-btn" id="g-hint">Hint <small>10</small><span class="coin"></span></button>
+    </div>
+    <div class="board-wrap"><div id="board" class="board" role="application" aria-label="Word search grid. Swipe across letters to select a word."></div></div>
+    <ul id="wordlist" class="wordlist" aria-label="Words to find"></ul>
+  </section>
+  <section id="screen-store" class="screen" aria-label="Premium store" hidden></section>
+  <section id="screen-settings" class="screen" aria-label="Settings" hidden></section>
+
+  <div id="modal" class="modal" hidden><div class="modal-card" id="modal-card"></div></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</div>
+<script src="js/data.js"></script>
+<script src="js/generator.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
