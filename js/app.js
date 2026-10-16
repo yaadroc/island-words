@@ -6,14 +6,13 @@
   var PALETTE = ['#FFB4A2', '#FFE08A', '#9BE3B4', '#8EE3EA', '#D9B8F2', '#FFC2D6', '#B3C8FA', '#FFD29A'];
 
   /* ---------- save data ---------- */
-  var SAVE_V = 4; // v4: difficulty picker removed; everything plays at Medium. starsBy kept (flattened to .medium) for compatibility
-  function defSave() { return { v: SAVE_V, coins: 50, stars: {}, starsBy: {}, settings: { sound: true, relax: false, large: false, islandView: 'map', boardZoom: 'auto', zoomBy: {} }, daily: { last: '', streak: 0, done: {} }, unlocked: {} }; }
-  /* Older saves (no starsBy) were all played at the classic level: count them as Medium. */
+  var SAVE_V = 5; // v5: difficulty picker is back (chosen once on first launch, changeable in Settings); starsBy = best stars per puzzle per difficulty; 15 puzzles per island per difficulty
+  function defSave() { return { v: SAVE_V, coins: 50, stars: {}, starsBy: {}, settings: { sound: true, relax: false, large: false, difficulty: '', islandView: 'map', boardZoom: 'auto', zoomBy: {} }, daily: { last: '', streak: 0, done: {} }, unlocked: {} }; }
+  /* Saves without starsBy (v1/v2, v4) were all played at the classic level: count them as Medium. Per-difficulty bests are kept as they are. */
   function migrateStarsBy(s) {
     var by = {}, st = s.stars || {}, id, d;
     if (s.starsBy && typeof s.starsBy === 'object') for (id in s.starsBy) { by[id] = {}; for (d in s.starsBy[id]) if (G.DIFFS[d]) by[id][d] = Math.max(0, Math.min(3, s.starsBy[id][d] | 0)); }
     for (id in st) if (st[id] > 0 && !(by[id] && Object.keys(by[id]).length)) by[id] = { medium: Math.min(3, st[id] | 0) };
-    for (id in by) { var best = 0; for (d in by[id]) best = Math.max(best, d === 'easy' ? Math.min(2, by[id][d]) : by[id][d]); by[id] = best > 0 ? { medium: best } : {}; } // difficulty is gone: one best per puzzle
     return by;
   }
   /* v1 saves had no 'unlocked' list. Islands were unlocked by the old rules; keep them open after content updates. */
@@ -21,6 +20,8 @@
     ['barbados', 24, ['bb1', 'bb2', 'bb3']], ['dominican', 32, ['dr1', 'dr2', 'dr3']], ['stlucia', 40, ['lc1', 'lc2', 'lc3']]];
   /* v2 (65 puzzles, 16 sets): same idea with the thresholds shipped then, so newly inserted islands never re-lock anything. */
   var LEGACY2 = [['jamaica',0,['jm1','jm2','jm5','jm6','jm3','jm4','jm7']],['bahamas',6,['bs1','bs2','bs3','bs5','bs4']],['trinidad',14,['tt1','tt2','tt3','tt5','tt4','tt6']],['food',22,['fd1','fd2','fd3']],['barbados',30,['bb1','bb2','bb3','bb4']],['dominican',38,['dr1','dr2','dr4','dr3']],['legends',46,['lg1','lg2','lg3','lg4']],['stlucia',54,['lc1','lc2','lc4','lc3']],['cuba',62,['cu1','cu2','cu3','cu4']],['cricket',70,['cr1','cr2','cr3']],['grenada',78,['gr1','gr2','gr3','gr4']],['wildlife',86,['wl1','wl2','wl3']],['haiti',94,['ha1','ha2','ha3','ha4']],['festivals',102,['fe1','fe2','fe3']],['puertorico',110,['pr1','pr2','pr3','pr4']],['slang',118,['sl1','sl2','sl3']]];
+  /* v3/v4 (up to 36 sets, 3-7 puzzles each): thresholds shipped then, so the 15-per-difficulty content never re-locks an island a player had already opened. */
+  var LEGACY3 = [['jamaica',0,['jm1','jm2','jm5','jm6','jm3','jm4','jm7']],['bahamas',6,['bs1','bs2','bs3','bs5','bs4']],['trinidad',14,['tt1','tt2','tt3','tt5','tt4','tt6']],['food',22,['fd1','fd2','fd3']],['barbados',30,['bb1','bb2','bb3','bb4']],['dominican',38,['dr1','dr2','dr4','dr3']],['legends',46,['lg1','lg2','lg3','lg4']],['stlucia',54,['lc1','lc2','lc4','lc3']],['cuba',62,['cu1','cu2','cu3','cu4']],['cricket',70,['cr1','cr2','cr3']],['grenada',78,['gr1','gr2','gr3','gr4']],['wildlife',86,['wl1','wl2','wl3']],['haiti',94,['ha1','ha2','ha3','ha4']],['festivals',102,['fe1','fe2','fe3']],['puertorico',110,['pr1','pr2','pr3','pr4']],['antigua',118,['ag1','ag2','ag3']],['stkitts',125,['kn1','kn2','kn3']],['cayman',132,['ky1','ky2','ky3','ky4']],['curacao',139,['cw1','cw2','cw3','cw4']],['aruba',146,['aw1','aw2','aw3']],['bonaire',153,['bq1','bq2','bq3']],['dominica',160,['dm1','dm2','dm3']],['stvincent',167,['vc1','vc2','vc3']],['bermuda',174,['bm1','bm2','bm3']],['turkscaicos',181,['tc1','tc2','tc3']],['bvi',188,['vg1','vg2','vg3']],['usvi',195,['vi1','vi2','vi3']],['anguilla',202,['ai1','ai2','ai3']],['montserrat',209,['ms1','ms2','ms3']],['martinique',216,['mq1','mq2','mq3']],['guadeloupe',223,['gp1','gp2','gp3']],['sintmaarten',230,['sx1','sx2','sx3']],['stbarths',237,['bl1','bl2','bl3']],['saba',244,['sb1','sb2','sb3']],['statia',251,['st1','st2','st3']],['slang',258,['sl1','sl2','sl3']]];
   function migrateUnlocked(s) {
     var u = Object.assign({}, s.unlocked && typeof s.unlocked === 'object' ? s.unlocked : {}), st = s.stars || {}, tot = 0, k;
     for (k in st) tot += st[k] | 0;
@@ -34,24 +35,37 @@
       if (L[1] === 0 || tot >= L[1] || prevDone >= prevN) u[L[0]] = true;
       prevN += L[2].length; L[2].forEach(function (id) { if (st[id] > 0) prevDone++; });
     });
+    prevN = 0; prevDone = 0;
+    LEGACY3.forEach(function (L) {
+      if (L[1] === 0 || tot >= L[1] || prevDone >= prevN) u[L[0]] = true;
+      prevN += L[2].length; L[2].forEach(function (id) { if (st[id] > 0) prevDone++; });
+    });
     return u;
   }
+  var legacyDiff = 'medium';
   function load() {
     try {
       var s = JSON.parse(localStorage.getItem(KEY));
       if (s && typeof s === 'object') { var d = defSave(); var out = { v: SAVE_V, coins: s.coins | 0, stars: s.stars || {}, starsBy: migrateStarsBy(s), settings: Object.assign(d.settings, s.settings), daily: Object.assign(d.daily, s.daily), unlocked: migrateUnlocked(s) };
-        delete out.settings.difficulty; delete out.settings.askDifficulty;
-        Object.keys(out.starsBy).forEach(function (id) { var b = out.starsBy[id].medium | 0; if (b > (out.stars[id] | 0)) out.stars[id] = b; }); // stars from any past difficulty keep counting toward unlocks
+        // difficulty is chosen ONCE (first-launch screen). Saves from before v5 never chose one: they see the chooser a single time (pre-selecting their old v3 default if any) and keep all progress.
+        var dc = out.settings.difficulty; out.settings.difficulty = (s.v >= 5 && G.DIFFS[dc]) ? dc : '';
+        legacyDiff = G.DIFFS[dc] ? dc : 'medium'; delete out.settings.askDifficulty;
+        Object.keys(out.starsBy).forEach(function (id) { var cr = 0; for (var k in out.starsBy[id]) cr = Math.max(cr, Math.min(out.starsBy[id][k], G.DIFFS[k].starCap)); if (cr > (out.stars[id] | 0)) out.stars[id] = cr; }); // stars from any difficulty keep counting toward unlocks
         if (out.settings.islandView !== 'list') out.settings.islandView = 'map';
         if (['auto', 'fit', '1.5', '2'].indexOf(out.settings.boardZoom) < 0) out.settings.boardZoom = 'auto';
         var zb = out.settings.zoomBy; if (!zb || typeof zb !== 'object' || Array.isArray(zb)) zb = {};
-        Object.keys(zb).forEach(function (k) { var v = +zb[k]; if (k !== 'medium' || !isFinite(v)) delete zb[k]; else zb[k] = Math.max(1, Math.min(2.5, v)); });
+        Object.keys(zb).forEach(function (k) { var v = +zb[k]; if (!G.DIFFS[k] || !isFinite(v)) delete zb[k]; else zb[k] = Math.max(1, Math.min(2.5, v)); });
         out.settings.zoomBy = zb;
         return out; }
     } catch (e) {}
     return defSave();
   }
   var save = load();
+  function curDiff() { return G.DIFFS[save.settings.difficulty] ? save.settings.difficulty : 'medium'; }
+  /* Puzzle lists per island at the player's difficulty (cached so puzzle objects keep their identity). */
+  var plCache = {};
+  function plist(isl, dk) { dk = dk || curDiff(); var k = isl.id + '|' + dk; return plCache[k] || (plCache[k] = D.puzzles(isl, dk)); }
+  function by(id, dk) { var b = save.starsBy[id]; return (b && b[dk || curDiff()]) | 0; }
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) {} }
 
   /* ---------- helpers ---------- */
@@ -78,30 +92,34 @@
   function totalStars() { var n = 0; for (var k in save.stars) n += save.stars[k]; return n; }
   function completed() { var n = 0; for (var k in save.stars) if (save.stars[k] > 0) n++; return n; }
   function playerLevel() { return 1 + Math.floor(totalStars() / 3); }
+  /* Islands unlock with total stars (credit: best of any difficulty, Easy counts up to 2) or by finishing every earlier puzzle (with any star).
+     Thresholds are 9 stars per island, so Easy alone (>= 1 star per puzzle) always keeps the next island reachable. */
   function islandUnlocked(i) {
     if (i === 0) return true;
-    var prev = 0; for (var j = 0; j < i; j++) prev += D.islands[j].puzzles.length;
-    var prevDone = 0; for (j = 0; j < i; j++) D.islands[j].puzzles.forEach(function (p) { if (save.stars[p.id] > 0) prevDone++; });
     var id = D.islands[i].id;
     if (save.unlocked && save.unlocked[id]) return true;
+    var prev = 0, prevDone = 0;
+    for (var j = 0; j < i; j++) { var cs = D.islands[j].chapters; prev += cs.length; cs.forEach(function (c) { if (save.stars[c.id] > 0) prevDone++; }); }
     var ok = totalStars() >= D.islands[i].starsReq || prevDone >= prev;
     if (ok && save.unlocked) { save.unlocked[id] = true; persist(); }
     return ok;
   }
+  /* Each difficulty has its own progression list per island: finish a puzzle (>= 1 star) at this difficulty to open the next. */
   function puzzleUnlocked(isl, idx) {
-    if (idx === 0 || save.stars[isl.puzzles[idx - 1].id] > 0) return true;
-    for (var j = idx + 1; j < isl.puzzles.length; j++) if (save.stars[isl.puzzles[j].id] > 0) return true; // later puzzle already done (older save)
+    var L = plist(isl);
+    if (idx === 0 || by(L[idx - 1].id) > 0) return true;
+    for (var j = idx + 1; j < L.length; j++) if (by(L[j].id) > 0) return true;
     return false;
   }
-  function nextPuzzle() { // first unlocked-but-unfinished puzzle
+  function nextPuzzle() { // first unlocked-but-unfinished puzzle at the player's difficulty
     for (var i = 0; i < D.islands.length; i++) {
       if (!islandUnlocked(i)) continue;
-      var isl = D.islands[i];
-      for (var j = 0; j < isl.puzzles.length; j++) if (!(save.stars[isl.puzzles[j].id] > 0) && puzzleUnlocked(isl, j)) return { isl: isl, p: isl.puzzles[j] };
+      var isl = D.islands[i], L = plist(isl);
+      for (var j = 0; j < L.length; j++) if (!(by(L[j].id) > 0) && puzzleUnlocked(isl, j)) return { isl: isl, p: L[j] };
     }
-    // everything finished: offer the puzzle with the fewest stars for a better score
+    // everything finished at this difficulty: offer the puzzle with the fewest stars for a better score
     var best = null;
-    D.islands.forEach(function (isl, i) { if (islandUnlocked(i)) isl.puzzles.forEach(function (p) { if (!best || (save.stars[p.id] || 0) < (save.stars[best.p.id] || 0)) best = { isl: isl, p: p }; }); });
+    D.islands.forEach(function (isl, i) { if (islandUnlocked(i)) plist(isl).forEach(function (p) { if (!best || by(p.id) < by(best.p.id)) best = { isl: isl, p: p }; }); });
     return best;
   }
   function dailyStreak() { var d = save.daily; return (d.last === dateKey() || d.last === yesterdayKey()) ? d.streak : 0; }
@@ -132,13 +150,13 @@
   };
 
   /* ---------- navigation ---------- */
-  var current = 'menu', screens = ['menu', 'islands', 'island', 'game', 'store', 'settings'];
+  var current = 'menu', screens = ['menu', 'islands', 'island', 'game', 'store', 'settings', 'diff'];
   function show(name) {
     current = name;
     screens.forEach(function (s) { $('screen-' + s).hidden = s !== name; });
     stopTimer();
     if (name === 'menu') renderMenu(); else if (name === 'islands') renderIslands();
-    else if (name === 'store') renderStore(); else if (name === 'settings') renderSettings();
+    else if (name === 'store') renderStore(); else if (name === 'settings') renderSettings(); else if (name === 'diff') renderDiffChooser();
     document.body.classList.toggle('large', !!save.settings.large);
   }
   function header(title, back) {
@@ -157,11 +175,11 @@
       h('div', { class: 'pill', 'aria-label': save.coins + ' coins' }, coinEl(), h('b', { id: 'm-coins', text: String(save.coins) }))));
     var tiles = h('div', { class: 'tiles', 'aria-hidden': 'true' }); 'CARIBBEAN'.split('').forEach(function (c) { tiles.appendChild(h('b', { text: c })); });
     el.appendChild(h('div', { class: 'logo' }, h('h1', { html: 'ISLAND<span>WORDS</span>' }), tiles, h('p', { text: D.tagline })));
-    var nx = nextPuzzle();
+    el.appendChild(h('button', { class: 'cur-diff', id: 'cur-diff', 'aria-label': 'Difficulty: ' + G.diffOf(curDiff()).name + '. Change in Settings', onclick: function () { show('settings'); } }, 'Difficulty ', dbadge(curDiff()), ' \u00B7 change'));
     var play = h('button', { class: 'btn primary', id: 'btn-play', onclick: function () {
       var n = nextPuzzle(); if (n) choosePuzzle(n.p, { isl: n.isl, from: 'menu' }); else show('islands');
     } }, 'PLAY ISLAND ADVENTURE');
-    var daily = h('button', { class: 'btn sun', id: 'btn-daily', onclick: function () { choosePuzzle(G.dailyPuzzle(dateKey()), { daily: dateKey(), from: 'menu' }); } },
+    var daily = h('button', { class: 'btn sun', id: 'btn-daily', onclick: function () { startDaily(); } },
       h('span', { text: 'Daily Puzzle' }), h('small', { text: doneToday ? 'Done today \u2713 \u00B7 streak ' + streak : (streak ? 'Streak ' + streak + ' day' + (streak > 1 ? 's' : '') : 'New every day') }));
     var explore = h('button', { class: 'btn palm', id: 'btn-islands', onclick: function () { show('islands'); } }, 'Explore Islands');
     var set = h('button', { class: 'btn turq', id: 'btn-settings', onclick: function () { show('settings'); } }, 'Settings');
@@ -173,9 +191,9 @@
   var mapView = { z: 1, tx: 0, ty: 0 }, curMap = null;
   function islandInfo(id) {
     var i = D.islands.findIndex(function (x) { return x.id === id; }), isl = D.islands[i], open = islandUnlocked(i), got = 0, done = 0;
-    isl.puzzles.forEach(function (p) { got += save.stars[p.id] || 0; if (save.stars[p.id] > 0) done++; });
-    return { i: i, isl: isl, open: open, got: got, max: isl.puzzles.length * 3, done: done, total: isl.puzzles.length, req: isl.starsReq, have: totalStars(),
-      state: !open ? 'locked' : (done === isl.puzzles.length ? 'complete' : 'open') };
+    var L = plist(isl); L.forEach(function (p) { got += by(p.id); if (by(p.id) > 0) done++; });
+    return { i: i, isl: isl, open: open, got: got, max: L.length * 3, done: done, total: L.length, req: isl.starsReq, have: totalStars(),
+      state: !open ? 'locked' : (done === L.length ? 'complete' : 'open') };
   }
   function openIsland(id) {
     var inf = islandInfo(id);
@@ -223,8 +241,8 @@
   function renderIslandList(el) {
     var cards = h('div', { class: 'cards' });
     D.islands.forEach(function (isl, i) {
-      var open = islandUnlocked(i), got = 0, max = isl.puzzles.length * 3;
-      isl.puzzles.forEach(function (p) { got += save.stars[p.id] || 0; });
+      var open = islandUnlocked(i), got = 0, L = plist(isl), max = L.length * 3;
+      L.forEach(function (p) { got += by(p.id); });
       var meta = h('div', { class: 'meta' }, h('h3', { text: isl.name }), h('p', { text: isl.blurb }));
       if (open) meta.appendChild(h('div', { class: 'stars', html: '\u2605 ' + got + '/' + max }));
       else meta.appendChild(h('div', { class: 'lockmsg', text: '\uD83D\uDD12 Earn ' + isl.starsReq + ' stars (you have ' + totalStars() + ') or finish all earlier puzzles' }));
@@ -238,11 +256,13 @@
   function renderIslandPuzzles(isl) {
     var el = $('screen-island'); show('island'); el.innerHTML = '';
     el.appendChild(header(isl.name, function () { show('islands'); }));
+    el.appendChild(h('div', { class: 'isl-diff', id: 'isl-diff' }, 'Playing on ', dbadge(curDiff()), ' \u00B7 ' + plist(isl).length + ' puzzles'));
     var cards = h('div', { class: 'cards' });
-    isl.puzzles.forEach(function (p, idx) {
-      var open = puzzleUnlocked(isl, idx), st = save.stars[p.id] || 0;
+    plist(isl).forEach(function (p, idx) {
+      var open = puzzleUnlocked(isl, idx), st = by(p.id);
       var meta = h('div', { class: 'meta' }, h('h3', { text: p.title }),
         h('div', null, h('span', { class: 'chip', text: p.theme }), h('span', { class: 'chip', text: p.words.length + ' words' })));
+      var bests = bestsText(p.id); if (open && bests) meta.appendChild(h('div', { class: 'sub bests', text: 'Best: ' + bests }));
       meta.appendChild(open ? h('div', { class: 'stars', html: starsStr(st) }) : h('div', { class: 'lockmsg', text: '\uD83D\uDD12 Finish the previous puzzle' }));
       cards.appendChild(h('button', { class: 'card' + (open ? '' : ' locked'), 'data-puzzle': p.id, onclick: function () {
         if (open) choosePuzzle(p, { isl: isl, from: 'island' }); else toast('Finish the previous puzzle first');
@@ -263,7 +283,15 @@
       } });
       return h('div', { class: 'card set-row' }, h('div', null, h('b', { text: label }), h('span', { class: 'sub', text: desc })), sw);
     }
-    var zsel = h('div', { class: 'card set-diff' }, h('div', null, h('b', { text: 'Default board zoom' }), h('span', { class: 'sub', id: 'set-zoom-desc', text: 'Use the + / \u2212 / Fit buttons on the board any time.' })));
+    var dsel = h('div', { class: 'card set-diff' }, h('div', null, h('b', { text: 'Difficulty' }), h('span', { class: 'sub', id: 'set-diff-desc', text: G.diffOf(curDiff()).desc })));
+    var dgrp = h('div', { class: 'seg seg4', role: 'radiogroup', 'aria-label': 'Difficulty' });
+    G.DIFF_ORDER.forEach(function (k) {
+      dgrp.appendChild(h('button', { class: 'seg-btn d-' + k, id: 'set-diff-' + k, role: 'radio', 'aria-checked': String(curDiff() === k), onclick: function () {
+        save.settings.difficulty = k; persist(); G.DIFF_ORDER.forEach(function (j) { $('set-diff-' + j).setAttribute('aria-checked', String(j === k)); }); $('set-diff-desc').textContent = G.DIFFS[k].desc;
+      } }, G.DIFFS[k].name));
+    });
+    dsel.appendChild(dgrp); cards.appendChild(dsel);
+    var zsel = h('div', { class: 'card set-diff' }, h('div', null, h('b', { text: 'Default board zoom' }), h('span', { class: 'sub', id: 'set-zoom-desc', text: 'Auto zooms Expert so letters stay easy to hit. Use the + / \u2212 / Fit buttons on the board any time.' })));
     var zgrp = h('div', { class: 'seg seg4', role: 'radiogroup', 'aria-label': 'Default board zoom' });
     [['auto', 'Auto'], ['fit', 'Fit'], ['1.5', '1.5\u00D7'], ['2', '2\u00D7']].forEach(function (o) {
       zgrp.appendChild(h('button', { class: 'seg-btn', id: 'set-zoom-' + o[0], role: 'radio', 'aria-checked': String(save.settings.boardZoom === o[0]), onclick: function () {
@@ -276,7 +304,7 @@
     cards.appendChild(row('set-relax', 'Relax mode', 'No timer, just play', 'relax'));
     cards.appendChild(row('set-large', 'Large text', 'Bigger text for easier reading', 'large'));
     cards.appendChild(h('button', { class: 'btn', id: 'set-reset', onclick: function () {
-      if (window.confirm('Reset all coins, stars and streak?')) { save = defSave(); persist(); toast('Progress reset'); renderSettings(); }
+      if (window.confirm('Reset all coins, stars and streak? (Your difficulty and settings stay.)')) { var keep = save.settings; save = defSave(); save.settings = keep; persist(); toast('Progress reset'); renderSettings(); }
     } }, 'Reset progress'));
     cards.appendChild(h('div', { class: 'sub', style: 'color:#fff;text-align:center', text: 'Island Words prototype \u00B7 works offline \u00B7 saved on this device' }));
     el.appendChild(cards);
@@ -310,25 +338,54 @@
     }
   }
 
-  /* ---------- puzzle build (difficulty is internal: always Medium) ---------- */
+  /* ---------- difficulty ---------- */
+  function dbadge(k) { var d = G.diffOf(k); return h('span', { class: 'dbadge d-' + d.key, text: d.name }); }
+  function bestsText(id) {
+    var b = save.starsBy[id], out = [];
+    if (!b) return '';
+    G.DIFF_ORDER.forEach(function (k) { if (b[k] > 0) out.push(G.DIFFS[k].name + ' ' + '\u2605'.repeat(b[k])); });
+    return out.join(' \u00B7 ');
+  }
+  var DSPEC = { easy: '5 short words \u00B7 small grid \u00B7 right/down \u00B7 hint 5 \u00B7 coins \u00D71', medium: '6 words \u00B7 medium grid \u00B7 4 to 8 directions \u00B7 hint 10 \u00B7 coins \u00D71.5',
+    hard: '8 words \u00B7 bigger grid \u00B7 8 directions \u00B7 hint 20 (max 3) \u00B7 coins \u00D72', expert: '9 long words \u00B7 biggest grid \u00B7 8 directions \u00B7 1 hint at 40 \u00B7 coins \u00D73' };
+  /* First-launch screen: shown once, when no difficulty is saved yet. Afterwards puzzles start immediately; change it in Settings. */
+  function renderDiffChooser() {
+    var el = $('screen-diff'); el.innerHTML = ''; var chosen = legacyDiff, btns = {};
+    var card = h('div', { class: 'card', id: 'diff-pick' }, h('h2', { text: 'Choose your difficulty' }),
+      h('div', { class: 'sub', style: 'margin-bottom:8px', text: 'You only pick once. Change it any time in Settings.' }));
+    var grp = h('div', { class: 'diff-list', role: 'radiogroup', 'aria-label': 'Difficulty' });
+    G.DIFF_ORDER.forEach(function (k) {
+      var d = G.DIFFS[k];
+      var btn = h('button', { class: 'diff-opt d-' + k, id: 'diff-' + k, role: 'radio', 'aria-checked': String(chosen === k), onclick: function () {
+        chosen = k; G.DIFF_ORDER.forEach(function (j) { btns[j].setAttribute('aria-checked', String(j === k)); });
+      } }, h('b', { text: d.name }), h('span', { class: 'ds', text: DSPEC[k] }), h('span', { class: 'dd', text: d.desc }));
+      btns[k] = btn; grp.appendChild(btn);
+    });
+    card.appendChild(grp);
+    card.appendChild(h('button', { class: 'btn primary', id: 'diff-start', style: 'min-height:60px;font-size:1.1em;width:100%', onclick: function () { save.settings.difficulty = chosen; persist(); el.innerHTML = ''; show('menu'); } }, 'Start playing'));
+    el.appendChild(card);
+  }
+
+  /* ---------- puzzle build ---------- */
   var buildCache = {};
   function buildFor(puz, dk, seed) { var k = puz.id + '|' + dk + '|' + seed; return buildCache[k] || (buildCache[k] = G.build(puz, dk, seed)); }
-  function choosePuzzle(puz, opts) { startPuzzle(puz, opts || {}); } // no picker: always starts immediately
+  function choosePuzzle(puz, opts) { startPuzzle(puz, opts || {}); } // no per-puzzle picker: starts immediately at the saved difficulty
 
   /* ---------- game ---------- */
   var game = null, timerId = null;
   function startDaily() {
-    var key = dateKey(), puz = G.dailyPuzzle(key);
+    var key = dateKey(), puz = G.dailyPuzzle(key, curDiff());
     startPuzzle(puz, { daily: key, from: 'menu' });
   }
   function startPuzzle(puz, opts) {
-    var seed = puz.seed != null ? puz.seed : G.hash('island-' + puz.id);
-    var bld = buildFor(puz, 'medium', seed), gen = bld.gen;
+    var seed = puz.seed != null ? puz.seed : G.hash('island-' + puz.id + '-' + ((opts && opts.diff) || curDiff()));
+    var dk = (opts && opts.diff) || curDiff(), bld = buildFor(puz, dk, seed), gen = bld.gen;
     game = { puz: puz, gen: gen, words: bld.words, diff: bld.diff, opts: opts || {}, found: {}, foundCount: 0, hints: 0, elapsed: 0, relax: !!save.settings.relax, done: false, hintCells: {}, colorIdx: 0 };
     show('game');
     var isl = opts && opts.isl;
     $('g-name').textContent = opts && opts.daily ? 'Daily Puzzle' : puz.title;
     $('g-sub').textContent = (opts && opts.daily ? dateKey() : (isl ? isl.name : '')) + ' \u00B7 ' + gen.size + '\u00D7' + gen.size;
+    var db = $('g-diff'); db.textContent = game.diff.name; db.className = 'dbadge d-' + game.diff.key; db.setAttribute('aria-label', 'Difficulty: ' + game.diff.name);
     $('g-timer').textContent = game.relax ? 'Relax' : '0:00';
     buildBoard(); buildWords(); updateStats();
     startTimer();
@@ -368,7 +425,7 @@
     if (!zoomAuto) return Math.max(ZMIN, Math.min(ZMAX, saved));
     var m = save.settings.boardZoom;
     if (m === 'fit') return 1; if (m === '1.5') return 1.5; if (m === '2') return 2;
-    return 1;
+    return d === 'expert' ? comfyZoom() : 1;
   }
   function centerView() { var b = $('board'); b.scrollLeft = (b.scrollWidth - b.clientWidth) / 2; b.scrollTop = (b.scrollHeight - b.clientHeight) / 2; }
   function cellPx() { var c = document.querySelector('#board-grid .cell'); return c ? c.getBoundingClientRect().width : 0; }
@@ -540,9 +597,9 @@
         bonusTxt = 'Daily bonus + ' + d.streak + '-day streak!';
       } else coins = Math.round(5 * mult);
     } else {
-      var by = save.starsBy[puz.id] || (save.starsBy[puz.id] = {}), prevD = by[D_.key] || 0; first = prevD === 0;
+      var bb = save.starsBy[puz.id] || (save.starsBy[puz.id] = {}), prevD = bb[D_.key] || 0; first = prevD === 0;
       coins = Math.round((first ? game.words.length * 5 + stars * 10 : 5 + Math.max(0, stars - prevD) * 10) * mult);
-      if (stars > prevD) { by[D_.key] = stars; newBest = !first; }
+      if (stars > prevD) { bb[D_.key] = stars; newBest = !first; }
       if (credit > (save.stars[puz.id] || 0)) save.stars[puz.id] = credit; // unlock credit: best of any difficulty (Easy counts up to 2 stars)
     }
     save.coins += coins; persist();
@@ -551,21 +608,22 @@
     for (var i = 0; i < 3; i++) big.appendChild(h('span', { class: i < stars ? '' : 'off', style: 'animation-delay:' + (0.2 + i * 0.25) + 's', text: '\u2605' }));
     var card = h('div', { id: 'complete' }, h('h2', { text: 'Puzzle Complete!' }), big,
       h('div', { class: 'earn' }, h('div', { class: 'pill' }, coinEl(), h('b', { id: 'earned', text: '+' + coins })), h('div', { class: 'pill', text: game.relax ? 'Relax mode' : 'Time ' + fmt(game.elapsed) })));
-    card.appendChild(h('div', { class: 'sub', text: 'coins \u00D7' + mult + (newBest ? ' \u00B7 new best!' : '') }));
+    card.appendChild(h('div', { class: 'sub' }, h('span', { class: 'dbadge d-' + D_.key, text: D_.name }), ' coins \u00D7' + mult + (newBest ? ' \u00B7 new best!' : '')));
+    if (!o.daily && stars > D_.starCap) card.appendChild(h('div', { class: 'sub', text: 'Counts as ' + credit + '\u2605 toward unlocking islands (Easy max ' + D_.starCap + ')' }));
     if (bonusTxt) card.appendChild(h('div', { class: 'sub', style: 'font-weight:800;color:#2E9E5B', text: bonusTxt }));
     if (game.hints) card.appendChild(h('div', { class: 'sub', text: 'Hints used: ' + game.hints }));
     card.appendChild(h('div', { class: 'fact' }, h('b', { text: 'Fun fact: ' }), puz.fact));
     var btns = h('div', { class: 'modal-btns' }), nx = null;
     if (!o.daily) nx = nextAfter(o.isl, puz);
     if (nx) btns.appendChild(h('button', { class: 'btn primary', id: 'btn-next', style: 'min-height:60px;font-size:1.1em', onclick: function () { closeModal(); choosePuzzle(nx.p, { isl: nx.isl, from: o.from }); } }, 'Next Puzzle'));
-    btns.appendChild(h('button', { class: 'btn sun', id: 'btn-replay', onclick: function () { closeModal(); startPuzzle(puz, o); } }, 'Play Again'));
+    btns.appendChild(h('button', { class: 'btn sun', id: 'btn-replay', onclick: function () { closeModal(); startPuzzle(puz, Object.assign({}, o, { diff: game.diff.key })); } }, 'Play Again'));
     btns.appendChild(h('button', { class: 'btn', id: 'btn-done-menu', onclick: function () { closeModal(); backFromGame(); } }, 'Back'));
     card.appendChild(btns); openModal(card); confetti();
   }
   function nextAfter(isl, puz) {
     if (!isl) return null;
-    var i = isl.puzzles.indexOf(puz);
-    if (i >= 0 && i + 1 < isl.puzzles.length) return { isl: isl, p: isl.puzzles[i + 1] };
+    var L = plist(isl), i = L.indexOf(puz);
+    if (i >= 0 && i + 1 < L.length) return { isl: isl, p: L[i + 1] };
     var n = nextPuzzle(); return n && n.p !== puz ? n : null;
   }
   function backFromGame() {
@@ -580,14 +638,14 @@
     $('g-hint').addEventListener('click', useHint);
     document.addEventListener('visibilitychange', function () { if (current === 'game' && game && !game.done) startTimer(); });
     window.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeModal(); });
-    show('menu');
+    show(save.settings.difficulty ? 'menu' : 'diff');
     if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
       navigator.serviceWorker.register('sw.js').catch(function () {});
     }
   }
   // test/debug hook
   window.IW = {
-    get game() { return game; }, get save() { return save; }, G: G, D: D, dateKey: dateKey,
+    get game() { return game; }, get save() { return save; }, G: G, D: D, dateKey: dateKey, curDiff: curDiff, plist: plist, by: by,
     choosePuzzle: choosePuzzle, openIsland: openIsland, islandInfo: islandInfo, get map() { return curMap; }, startPuzzle: startPuzzle, startDaily: startDaily, show: show, persist: persist,
     zoom: { get: function () { return zoom; }, set: function (z) { userZoom(z); }, step: stepZoom, reveal: revealCell, cellPx: cellPx, auto: function () { return zoomAuto; }, pan: function () { var b = $('board'); return [b.scrollLeft, b.scrollTop]; } },
     cellCenter: function (r, c) { var rc = cellEl(r, c).getBoundingClientRect(); return { x: rc.left + rc.width / 2, y: rc.top + rc.height / 2 }; }

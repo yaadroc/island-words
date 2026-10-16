@@ -105,83 +105,49 @@
   }
 
   /* ---------- difficulty ----------
-     Medium is the original game (the puzzle's own level). Others adjust grid size, directions, word count and hint rules.
+     Every puzzle (chapter) ships with its own word list per difficulty (see data.js), so a difficulty changes the grid and the rules:
      sizeDelta: grid size relative to the puzzle's level size (never smaller than the longest word / minSize, never above maxSize).
+     dirs: allowed directions (null = by puzzle level). wordCount: words per puzzle (Easy 5, Medium 6, Hard +2 = 8, Expert +3 = 9).
      coinMult scales coin rewards, parMult scales the 3-star time allowance, starCap is the most stars that count toward island unlocks. */
   var DIFF_ORDER = ['easy', 'medium', 'hard', 'expert'];
   var DIFFS = {
-    easy:   { key: 'easy',   name: 'Easy',   sizeDelta: -2, minSize: 6, maxSize: 15, dirs: ['E', 'S'], keepFrac: 0.75, minWords: 3, extra: 0, hintCost: 5,  maxHints: 0, freeHints: 1, parMult: 1.4, coinMult: 1,   starCap: 2,
-      desc: 'Smaller grid (never below 6\u00D76), fewer words, words read right or down only. Cheap hints (the first one is star-free).' },
-    medium: { key: 'medium', name: 'Medium', sizeDelta: 0,  minSize: 6, maxSize: 15, dirs: null,       keepFrac: 1,    minWords: 3, extra: 0, hintCost: 10, maxHints: 0, freeHints: 0, parMult: 1,   coinMult: 1.5, starCap: 3,
-      desc: 'The classic game: puzzle grid, all words, directions by puzzle level.' },
-    hard:   { key: 'hard',   name: 'Hard',   sizeDelta: 2,  minSize: 8, maxSize: 16, dirs: ALL,        keepFrac: 1,    minWords: 3, extra: 2, hintCost: 20, maxHints: 3, freeHints: 0, parMult: 1.2, coinMult: 2,   starCap: 3,
-      desc: 'Bigger grid, 2 bonus words, all 8 directions (backwards and diagonal). Hints cost 20 and max 3.' },
-    expert: { key: 'expert', name: 'Expert', sizeDelta: 3,  minSize: 9, maxSize: 17, dirs: ALL,        keepFrac: 1,    minWords: 3, extra: 3, hintCost: 40, maxHints: 1, freeHints: 0, parMult: 1.4, coinMult: 3,   starCap: 3,
-      desc: 'Largest grid, 3 bonus words, all 8 directions. One hint per puzzle, costing 40.' }
+    easy:   { key: 'easy',   name: 'Easy',   sizeDelta: -2, minSize: 6, maxSize: 15, dirs: ['E', 'S'], wordCount: 5, hintCost: 5,  maxHints: 0, freeHints: 1, parMult: 1.4, coinMult: 1,   starCap: 2,
+      desc: 'Small grids (never below 6\u00D76), 5 short everyday words, read right or down only. Cheap hints (the first one is star-free).' },
+    medium: { key: 'medium', name: 'Medium', sizeDelta: 0,  minSize: 6, maxSize: 15, dirs: null,       wordCount: 6, hintCost: 10, maxHints: 0, freeHints: 0, parMult: 1,   coinMult: 1.5, starCap: 3,
+      desc: 'The classic game: 6 words, medium grids, and directions that grow from 4 to all 8 as you go.' },
+    hard:   { key: 'hard',   name: 'Hard',   sizeDelta: 2,  minSize: 8, maxSize: 16, dirs: ALL,        wordCount: 8, hintCost: 20, maxHints: 3, freeHints: 0, parMult: 1.2, coinMult: 2,   starCap: 3,
+      desc: 'Bigger grids, 8 longer words (2 more than Medium), all 8 directions (backwards and diagonal). Hints cost 20 and max 3.' },
+    expert: { key: 'expert', name: 'Expert', sizeDelta: 3,  minSize: 9, maxSize: 17, dirs: ALL,        wordCount: 9, hintCost: 40, maxHints: 1, freeHints: 0, parMult: 1.4, coinMult: 3,   starCap: 3,
+      desc: 'The biggest grids (auto-zoomed), 9 long, tricky words (3 more than Medium), all 8 directions. One hint per puzzle, costing 40.' }
   };
   function diffOf(k) { return DIFFS[k] || DIFFS.medium; }
 
-  function islandOfPuzzle(id) {
-    var isl = root.IW_DATA.islands;
-    for (var i = 0; i < isl.length; i++) for (var j = 0; j < isl[i].puzzles.length; j++) if (isl[i].puzzles[j].id === id) return isl[i];
-    return null;
-  }
-  function rev(w) { return w.split('').reverse().join(''); }
-  function pickWords(puz, d, seed) {
-    var words = puz.words.slice(), n = words.length, i;
-    if (d.keepFrac < 1) {
-      var keep = Math.min(n, Math.max(d.minWords, Math.ceil(n * d.keepFrac)));
-      var ranked = words.slice().sort(function (a, b) { return hash(seed + ':' + a) - hash(seed + ':' + b); }).slice(0, keep);
-      words = words.filter(function (w) { return ranked.indexOf(w) >= 0; });
-    }
-    if (d.extra) {
-      var isl = islandOfPuzzle(puz.id), pool = [], seen = {};
-      function add(w) { if (!seen[w]) { seen[w] = 1; pool.push(w); } }
-      if (isl) isl.puzzles.forEach(function (p) { if (p.id !== puz.id) p.words.forEach(add); });
-      allPuzzles().forEach(function (p) { if (p.theme === puz.theme && p.id !== puz.id) p.words.forEach(add); });
-      allPuzzles().forEach(function (p) { if (p.id !== puz.id) p.words.forEach(add); }); // last resort filler
-      var cands = [];
-      pool.forEach(function (w) { if (w.length >= 4 && w.length <= 10 && puz.words.indexOf(w) < 0) cands.push(w); });
-      var firstPool = pool.length; // keep pool order priority (island, theme, rest) but shuffle within a stable seed
-      cands = cands.map(function (w, idx) { return { w: w, k: Math.floor(idx / 12) * 1e10 + (hash(seed + '/' + w) % 1e9) }; })
-        .sort(function (a, b) { return a.k - b.k; }).map(function (o) { return o.w; });
-      var added = 0;
-      for (i = 0; i < cands.length && added < d.extra; i++) {
-        var w = cands[i], clash = false;
-        for (var j = 0; j < words.length; j++) {
-          var o = words[j];
-          if (o.indexOf(w) >= 0 || w.indexOf(o) >= 0 || o.indexOf(rev(w)) >= 0 || w.indexOf(rev(o)) >= 0 || o === rev(w)) { clash = true; break; }
-        }
-        if (!clash) { words.push(w); added++; }
-      }
-    }
-    return words;
-  }
-  /* Build a playable puzzle for a difficulty: { gen, words, diff, size }. Every word is verified placed exactly once. */
+  /* Build a playable puzzle for a difficulty: { gen, words, diff, size }. The puzzle's own words are used as given
+     (each difficulty has its own list); every word is verified placed exactly once. */
   function build(puz, diffKey, seed) {
-    var d = diffOf(diffKey);
-    if (d.key === 'medium') { var g0 = generate(puz.words, puz.level, seed); return { gen: g0, words: puz.words.slice(), diff: d, size: g0.size }; }
-    var base = LEVELS[puz.level], words = pickWords(puz, d, seed), longest = 0;
+    var d = diffOf(diffKey), base = LEVELS[puz.level], words = puz.words.slice(), longest = 0;
     words.forEach(function (w) { longest = Math.max(longest, w.length); });
     var size0 = Math.max(longest, Math.min(d.maxSize, Math.max(d.minSize, base.size + d.sizeDelta)));
-    for (var grow = 0; grow < 5; grow++) {
+    for (var grow = 0; grow < 6; grow++) {
       var gen = generateCfg(words, { size: size0 + grow, dirs: d.dirs || base.dirs }, seed, 150);
       if (gen) { gen.level = puz.level; gen.diff = d.key; return { gen: gen, words: words, diff: d, size: gen.size }; }
     }
     throw new Error('generation failed: ' + d.key + ' ' + words.join(','));
   }
 
-  function allPuzzles() {
+  /* All puzzles at one difficulty (default Medium), island by island. */
+  function allPuzzles(dk) {
     var out = [];
-    root.IW_DATA.islands.forEach(function (isl) { isl.puzzles.forEach(function (p) { out.push(p); }); });
+    root.IW_DATA.islands.forEach(function (isl) { root.IW_DATA.puzzles(isl, dk || 'medium').forEach(function (p) { out.push(p); }); });
     return out;
   }
-  /* Daily puzzle: deterministic from local date string 'YYYY-MM-DD' (or a numeric seed). */
-  function dailyPuzzle(keyOrSeed) {
+  /* Daily puzzle: deterministic from local date string 'YYYY-MM-DD' (or a numeric seed), drawn from the player's difficulty. */
+  function dailyPuzzle(keyOrSeed, dk) {
+    dk = DIFFS[dk] ? dk : 'medium';
     var seed = typeof keyOrSeed === 'number' ? keyOrSeed >>> 0 : hash('iw-daily-' + keyOrSeed);
-    var list = allPuzzles();
+    var list = allPuzzles(dk);
     var p = list[Math.floor(mulberry32(seed)() * list.length)];
-    return { id: 'daily-' + keyOrSeed, title: 'Daily Puzzle', theme: p.theme, level: p.level, words: p.words, fact: p.fact, seed: seed };
+    return { id: 'daily-' + keyOrSeed, title: 'Daily Puzzle', theme: p.theme, level: p.level, words: p.words, fact: p.fact, seed: seed, diff: dk };
   }
 
   var API = { DIFFS: DIFFS, DIFF_ORDER: DIFF_ORDER, diffOf: diffOf, build: build, generateCfg: generateCfg, DIRS: DIRS, ALL: ALL, LEVELS: LEVELS, hash: hash, mulberry32: mulberry32, findAll: findAll,
